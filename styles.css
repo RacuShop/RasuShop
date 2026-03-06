@@ -1,0 +1,488 @@
+/* design settings block */
+:root {
+    /* colors */
+    --color-primary: rgb(175, 18, 18);
+    --color-secondary: #E0E0E0;
+    --color-notactive: #636363;
+    --color-background: #F5F6FA;
+    --color-text: #202224;
+
+    /* spacing */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+
+    /* radii */
+    --radius-sm: 12px;
+    --radius-md: 8px;
+    --radius-lg: 16px;
+
+    /* typography */
+    --font-base: 'Roboto', sans-serif;
+    --font-size-base: 16px;
+    --btn-font-size: 1rem;
+    --color-button-text: white;
+
+    /* element sizes */
+    --header-height: 80px;
+    --bottom-nav-height: 56px;
+
+    --page-padding: clamp(8px, 3vw, 24px);      /* для малых экранов */
+    --max-content-width: 2000px;  /* макс. ширина контента */
+}
+
+/* global resets and layout */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+.content-block {
+    padding: 0 var(--page-padding);
+    max-width: var(--max-content-width);
+    margin: 0 auto;
+    width: 100%;
+}
+body {
+    /* global Roboto font */
+    font-family: "Roboto", sans-serif;
+    font-size: var(--font-size-base);
+    color: var(--color-text);
+    background: var(--color-background);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* header */
+#app-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--header-height);
+    background: var(--color-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-md);
+    z-index: 1000;
+}
+#app-logo {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    /* responsive logo can scale if needed */
+}
+
+#app-logo svg {
+    height: 100%;
+    width: auto;
+}    
+
+/* main container respects header and bottom nav */
+#app-main {
+    padding-top: var(--header-height);
+    padding-bottom: var(--bottom-nav-height);
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* category filter */
+#category-filter {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    overflow-x: auto;
+    background: #F5F6FA;
+    position: sticky;
+    top: var(--margin-top);
+    z-index: 800;
+}
+#category-filter button {
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--color-secondary);
+    border-radius: var(--radius-md);
+    background: white;
+    cursor: pointer;
+    flex-shrink: 0;
+    /* inherit global Roboto font */
+    font-family: inherit;
+    font-weight: 400;
+}
+#category-filter button.active {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+/* catalog grid */
+#catalog {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-md);
+    padding: var(--space-md);
+}
+.card {
+    background: white;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.card img {
+    width: 100%;
+    object-fit: cover;
+    aspect-ratio: 4/3;
+}
+.card-body {
+    padding: var(--space-sm);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+.card-header {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: flex-start;
+    justify-content: space-between;
+    width: 100%;
+}
+.card-title {
+    font-weight: bold;
+    margin-bottom: var(--space-xs);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.card-price {
+    color: var(--color-primary);
+    margin-bottom: var(--space-sm);
+    font-weight: bold;
+}
+.details-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    background: var(--color-primary);
+    color: var(--color-button-text);
+    border-radius: 20%;
+    cursor: pointer;
+    display: flex;
+    align-items: bottom;
+    justify-content: bottom;
+    margin-top: auto;
+    margin-bottom: 10px;
+    transition: background-color 0.2s, transform 0.1s;
+}
+.details-btn:hover,
+.details-btn:active {
+    background: rgba(18, 18, 175, 0.85);
+    transform: scale(1.1);
+}
+
+/* modal */
+#modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+#modal-overlay.hidden {
+    display: none;
+}
+.modal {
+    background: white;
+    border-radius: var(--radius-md);
+    /* make sure the modal never exceeds viewport dimensions */
+    max-width: 90vw;
+    width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    padding: var(--space-md);
+    /* desktop cap: don’t let it grow too large even if the viewport is wide */
+    max-width: 600px;
+    max-height: 80vh;
+}
+/* ensure images inside modal scale down on narrow screens */
+.modal img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto var(--space-md);
+}
+
+/* even tighter constraints for small phones (e.g. iPhone 15 ~ 390px width) */
+@media (max-width: 460px) {
+    .modal {
+        width: 95vw;
+        max-height: 85vh;
+        padding: var(--space-sm);
+        font-size: 0.9rem;
+    }
+}
+.modal-close {
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-sm);
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+/* product card button */
+#add-to-cart {
+    background-color: rgb(18, 18, 175);
+    color: var(--color-button-text);
+    border: none;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: 8px;
+    font-family: "Roboto", sans-serif;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#add-to-cart:hover,
+#add-to-cart:active {
+    background-color: rgb(65, 65, 230);
+}
+
+/* bottom nav */
+#bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--bottom-nav-height);
+    background: white;
+    display: flex;
+    border-top: 1px solid var(--color-secondary);
+    z-index: 1000;
+}
+.nav-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: var(--btn-font-size);
+    cursor: pointer;
+    color: #d2d2d2; /* default grey */
+    transition: color 0.15s;
+}
+.nav-btn.active,
+.nav-btn:active {
+    color: var(--color-text); /* follow main text color */
+}
+.nav-btn.active {
+    font-weight: bold;
+}
+/* стили для иконок в нижней навигации */
+.nav-btn .nav-icon {
+    fill: var(--color-notactive); /* серый по умолчанию */
+}
+
+/* активная кнопка — синяя иконка */
+.nav-btn.active .nav-icon,
+.nav-btn:active .nav-icon {
+    fill: var(--color-text); /* твой синий цвет */
+
+}
+
+#cart-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    
+}
+
+/* delivery options styling */
+#cart-delivery {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+#delivery-options {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    padding: var(--page-padding);
+    width: 100%; /* ← гарантируем, что занимает всю ширину */
+}
+#cart-delivery label {
+    display: inline-flex;
+    flex: 1 1 0px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-sm) var(--space-md);
+    border: 0px solid #ffffff;
+    border-radius: var(--radius-md);
+    background: white;
+    cursor: pointer;
+    text-align: center;
+    min-width: 140px;
+    max-width: 2000px;
+}
+#cart-delivery label.selected {
+    background: rgb(18, 18, 175);
+    color: white;
+}
+#cart-delivery label .delivery-region {
+    font-weight: bold;
+    font-family: Roboto, sans-serif;
+}
+#cart-delivery label .delivery-price {
+    color: #555;
+    font-family: Roboto, sans-serif;
+}
+#cart-delivery label.selected .delivery-price {
+    color: #ffffff;
+    font-family: Roboto, sans-serif;
+}
+/* hide actual radio buttons entirely */
+#cart-delivery input[type="radio"] {
+    display: none;
+}
+.cart-item {
+    display: flex;
+    gap: var(--space-sm);
+    background: white;
+    border-radius: var(--radius-sm);
+    padding: var(--space-sm);
+    align-items: center;
+}
+.cart-item img {
+    width: 130px;
+    height: 97.5px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+}
+.remove-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: white;
+    color: rgb(18, 18, 175);
+    font-size: 20px;
+    border: 1.5px solid rgb(18, 18, 175);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-left: auto; /* ← отодвигает крестик вправо (если нужно) */
+}
+
+.remove-btn:hover {
+    color: rgb(18, 18, 175);
+    transform: scale(1.1);
+}
+.cart-item-info {
+    flex: 1;
+}
+.cart-item-title {
+    font-weight: bold;
+}
+.cart-item-price {
+    color: var(--color-primary);
+}
+.cart-item button {
+    border: none;
+    background: none;
+    color: var(--color-secondary);
+    cursor: pointer;
+}
+
+/* info block and contract */
+#cart-info,
+#cart-contract {
+    padding: var(--space-md);
+}
+#cart-contract {
+    border-top: 1px solid var(--color-secondary);
+}
+#cart-contract label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+#cart-contract input[type="checkbox"] {
+    transform: scale(1.2);
+}
+#cart-contract button {
+    width: 100%;
+    padding: var(--space-sm);
+    border: none;
+    background: var(--color-primary);
+    color: var(--color-button-text);
+    border-radius: var(--radius-sm);
+    font-size: var(--btn-font-size);
+    cursor: pointer;
+}
+#cart-contract button:disabled {
+    background: var(--color-secondary);
+    color: #888;
+    cursor: not-allowed;
+}
+
+/* about screen */
+#about {
+    padding: var(--space-md);
+}
+
+/* account screen styles */
+.account-container {
+    padding: var(--space-md);
+}
+
+.account-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+}
+
+.account-avatar-wrapper {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--color-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.account-avatar {
+    width: 100%;
+    height: 100%;
+    background: center/cover;
+}
+
+.account-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.account-name {
+    font-weight: 500;
+    font-size: 1.1rem;
+    color: var(--color-text);
+}
+
+.account-id {
+    font-size: 0.9rem;
+    color: var(--color-notactive);
+    margin-top: var(--space-xs);
+}
