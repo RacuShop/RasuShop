@@ -1,5 +1,5 @@
 // Telegram WebApp initialization
-const tg = window.Telegram ? window.Telegram.WebApp : null;
+const tg = (typeof window !== 'undefined' && window.Telegram) ? window.Telegram.WebApp : null;
 if (tg) {
     tg.expand();
     tg.MainButton.hide();
@@ -14,6 +14,9 @@ if (tg) {
         if (params.button_text_color) root.style.setProperty('--color-text', params.button_text_color);
     }
 }
+
+// Telegram user metadata (from the WebApp init data)
+const telegramUser = tg?.initDataUnsafe?.user || null;
 
 // data structures
 const categories = [
@@ -32,7 +35,7 @@ const products = [
 ];
 
 let state = {
-    screen: 'catalog', // catalog, cart, about
+    screen: 'catalog', // catalog, cart, account, about
     activeCategory: null,
     cart: [],
 };
@@ -292,6 +295,31 @@ function renderAbout() {
     content.innerHTML = '<div id="about"><p>О проекте</p></div>';
 }
 
+function renderAccount() {
+    const content = $('#content');
+    content.innerHTML = '';
+
+    const avatarUrl = telegramUser?.photo_url || 'https://via.placeholder.com/120?text=Аватар';
+    const name = telegramUser?.first_name || 'Гость';
+    const userId = telegramUser?.id ? `@${telegramUser.id}` : 'Не доступен';
+
+    const accountCard = document.createElement('div');
+    accountCard.className = 'account-card';
+    accountCard.innerHTML = `
+        <div class="account-top">
+            <img id="user_avatar" class="account-avatar" src="${avatarUrl}" alt="Аватар" />
+            <div class="account-meta">
+                <div id="user_name" class="account-name">${name}</div>
+                <div id="user_id" class="account-id">${userId}</div>
+            </div>
+        </div>
+        <div class="account-note">
+            Информация берётся из Telegram WebApp (initDataUnsafe.user).
+        </div>
+    `;
+    content.appendChild(createBlock(accountCard));
+}
+
 function switchScreen(screen) {
     state.screen = screen;
     renderBottomNav();
@@ -305,6 +333,8 @@ function switchScreen(screen) {
         if (filterContainer) filterContainer.innerHTML = '';
         if (screen === 'cart') {
             renderCart();
+        } else if (screen === 'account') {
+            renderAccount();
         } else if (screen === 'about') {
             renderAbout();
         }
