@@ -49,8 +49,8 @@ body {
     /* global Roboto font */
     font-family: "Roboto", sans-serif;
     font-size: var(--font-size-base);
-    color: var(--color-text);
-    background: var(--color-background);
+    color: var(--color-text) !important;
+    background: var(--color-background) !important;
     min-height: 100vh;
     display: flex;
     flex-direction: column;

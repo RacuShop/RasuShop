@@ -1,8 +1,31 @@
 // Telegram WebApp initialization
 const tg = (typeof window !== 'undefined' && window.Telegram) ? window.Telegram.WebApp : null;
+
+function applyThemeOverride() {
+    // Telegram WebApp can inject its own theme styles. We keep our design stable by forcing
+    // the colors we use (via CSS vars) and adding an important override stylesheet.
+    const existing = document.getElementById('tg-theme-override');
+    if (existing) return;
+
+    const style = document.createElement('style');
+    style.id = 'tg-theme-override';
+    style.textContent = `
+        body {
+            background: var(--color-background) !important;
+            color: var(--color-text) !important;
+        }
+        #app-header, #bottom-nav {
+            background: var(--color-primary) !important;
+            color: var(--color-text) !important;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
 if (tg) {
     tg.expand();
     tg.MainButton.hide();
+
     // apply theme parameters to css variables if available
     const params = tg.themeParams;
     if (params) {
@@ -13,6 +36,8 @@ if (tg) {
         if (params.button_color) root.style.setProperty('--color-primary', params.button_color);
         if (params.button_text_color) root.style.setProperty('--color-text', params.button_text_color);
     }
+
+    applyThemeOverride();
 }
 
 // Telegram user metadata (from the WebApp init data)
