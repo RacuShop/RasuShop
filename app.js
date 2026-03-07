@@ -11,7 +11,7 @@ if (tg) {
         if (params.bg_color) root.style.setProperty('--color-background', params.bg_color);
         if (params.text_color) root.style.setProperty('--color-text', params.text_color);
         if (params.button_color) root.style.setProperty('--color-primary', params.button_color);
-        if (params.button_text_color) root.style.setProperty('--color-button-text', params.button_text_color);
+        if (params.button_text_color) root.style.setProperty('--color-text', params.button_text_color);
     }
 }
 
@@ -292,44 +292,6 @@ function renderAbout() {
     content.innerHTML = '<div id="about"><p>О проекте</p></div>';
 }
 
-function renderAccount() {
-    const content = $('#content');
-    content.innerHTML = '';
-
-    const userProfile = {
-        name: 'Имя Фамилия',
-        username: 'user',
-        status: 'Не определено',
-        avatarUrl: 'https://via.placeholder.com/150?text=U',
-    };
-
-    const container = document.createElement('div');
-    container.className = 'account-container';
-
-    const header = document.createElement('div');
-    header.className = 'account-header';
-    header.innerHTML = `
-        <div class="account-avatar-wrapper">
-            <div class="account-avatar" style="background-image: url('${userProfile.avatarUrl}')"></div>
-        </div>
-        <div class="account-info">
-            <div class="account-name">${userProfile.name}</div>
-            <div class="account-id">@${userProfile.username}</div>
-        </div>
-    `;
-
-    const statusBlock = document.createElement('div');
-    statusBlock.className = 'account-status';
-    statusBlock.innerHTML = `
-        <div class="account-status-title">Статус заказа</div>
-        <div class="account-status-value">${userProfile.status}</div>
-    `;
-
-    container.appendChild(header);
-    container.appendChild(statusBlock);
-    content.appendChild(container);
-}
-
 function switchScreen(screen) {
     state.screen = screen;
     renderBottomNav();
@@ -343,8 +305,6 @@ function switchScreen(screen) {
         if (filterContainer) filterContainer.innerHTML = '';
         if (screen === 'cart') {
             renderCart();
-        } else if (screen === 'account') {
-            renderAccount();
         } else if (screen === 'about') {
             renderAbout();
         }

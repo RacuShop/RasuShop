@@ -23,7 +23,6 @@
     --font-base: 'Roboto', sans-serif;
     --font-size-base: 16px;
     --btn-font-size: 1rem;
-    --color-button-text: white;
 
     /* element sizes */
     --header-height: 80px;
@@ -171,7 +170,7 @@ body {
     padding: 0;
     border: none;
     background: var(--color-primary);
-    color: var(--color-button-text);
+    color: white;
     border-radius: 20%;
     cursor: pointer;
     display: flex;
@@ -244,7 +243,7 @@ body {
 /* product card button */
 #add-to-cart {
     background-color: rgb(18, 18, 175);
-    color: var(--color-button-text);
+    color: white;
     border: none;
     padding: var(--space-sm) var(--space-md);
     border-radius: 8px;
@@ -281,7 +280,7 @@ body {
 }
 .nav-btn.active,
 .nav-btn:active {
-    color: var(--color-text); /* follow main text color */
+    color: #000; /* black when active or pressed */
 }
 .nav-btn.active {
     font-weight: bold;
@@ -425,7 +424,7 @@ body {
     padding: var(--space-sm);
     border: none;
     background: var(--color-primary);
-    color: var(--color-button-text);
+    color: white;
     border-radius: var(--radius-sm);
     font-size: var(--btn-font-size);
     cursor: pointer;
@@ -439,50 +438,4 @@ body {
 /* about screen */
 #about {
     padding: var(--space-md);
-}
-
-/* account screen styles */
-.account-container {
-    padding: var(--space-md);
-}
-
-.account-header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-    margin-bottom: var(--space-lg);
-}
-
-.account-avatar-wrapper {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: var(--color-secondary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-}
-
-.account-avatar {
-    width: 100%;
-    height: 100%;
-    background: center/cover;
-}
-
-.account-info {
-    display: flex;
-    flex-direction: column;
-}
-
-.account-name {
-    font-weight: 500;
-    font-size: 1.1rem;
-    color: var(--color-text);
-}
-
-.account-id {
-    font-size: 0.9rem;
-    color: var(--color-notactive);
-    margin-top: var(--space-xs);
 }
