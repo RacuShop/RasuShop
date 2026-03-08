@@ -339,7 +339,7 @@ function renderAccount() {
             </div>
         </div>
         <div class="account-note">
-            Информация берётся из Telegram WebApp (initDataUnsafe.user).
+            Информация берётся из Telegram
         </div>
     `;
     content.appendChild(createBlock(accountCard));
