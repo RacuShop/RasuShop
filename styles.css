@@ -25,7 +25,7 @@
     --btn-font-size: 1rem;
 
     /* element sizes */
-    --header-height: 80px;
+    --header-height: 100px;
     --bottom-nav-height: 56px;
 
     --page-padding: clamp(8px, 3vw, 24px);      /* для малых экранов */
