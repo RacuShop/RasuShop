@@ -26,7 +26,7 @@
 
     /* element sizes */
     --header-height: 100px;
-    --bottom-nav-height: 56px;
+    --bottom-nav-height: 62px;
 
     --page-padding: clamp(8px, 3vw, 24px);      /* для малых экранов */
     --max-content-width: 2000px;  /* макс. ширина контента */
@@ -278,7 +278,8 @@ body {
 
     /* center content so icon/text never shifts when state changes */
     display: flex;
-    align-items: center;
+    align-items: top;
+    margin-top: 5px;
     justify-content: center;
 
     /* prevent text/buttons from resizing when font-weight changes */
@@ -297,8 +298,8 @@ body {
 
 /* ensure SVG icons are centred and size-consistent */
 .nav-btn .nav-icon {
-    width: 35px;
-    height: 35px;
+    width: 40px;
+    height: 40px;
     display: block;
     fill: var(--color-notactive); /* серый по умолчанию */
 }
