@@ -371,6 +371,31 @@ function renderBottomNav() {
 function renderCart() {
     const content = $('#content');
     content.innerHTML = '';
+
+    // top info: either prompt to add items or instruction to fill survey
+    const info = document.createElement('div');
+    info.id = 'cart-info';
+    info.style.textAlign = 'center';
+    if (state.cart.length === 0) {
+        info.textContent = 'Добавьте услуги в корзину, чтобы оформить заказ.';
+        info.style.marginBottom = '0';
+    } else {
+        info.innerHTML = '<strong>Для оформления заказа заполните опрос</strong>';
+        info.style.marginBottom = '50px';
+    }
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'content-block';
+    wrapper.appendChild(info);
+
+    if (state.cart.length === 0) {
+        content.appendChild(wrapper);
+        removeCartSummary();
+        content.style.paddingBottom = '';
+        return;
+    }
+
+    // items list
     const list = document.createElement('div');
     list.id = 'cart-list';
 
@@ -393,13 +418,11 @@ function renderCart() {
         });
 
         div.querySelector('.remove-btn').addEventListener('click', () => {
-            // if we auto-added Экспресс-дизайн for this item, remove it too
             const survey = state.surveys[item.id];
             if (survey?.autoAddedExpress) {
                 removeProductFromCart(1);
             }
 
-            // clean up any survey state for this item
             delete state.surveys[item.id];
 
             state.cart = state.cart.filter(i => i.id !== item.id);
@@ -409,53 +432,52 @@ function renderCart() {
         list.appendChild(div);
     });
 
-    // info message (at the top of the cart)
-    const info = document.createElement('div');
-    info.id = 'cart-info';
-    info.style.textAlign = 'center';
-    info.innerHTML = '<strong>Для оформления заказа заполните опрос</strong>';
-    content.appendChild(info);
+    wrapper.appendChild(list);
+    content.appendChild(wrapper);
 
-    content.appendChild(createBlock(list));
+    // keep content from being hidden behind fixed summary at bottom
+    content.style.paddingBottom = '200px';
 
-    if (state.cart.length === 0) {
-        const empty = document.createElement('div');
-        empty.style.textAlign = 'center';
-        empty.textContent = 'Добавьте услуги в корзину, чтобы оформить заказ.';
-        content.appendChild(empty);
-        return;
-    }
+    renderCartSummary();
+}
 
-    // total display
-    const totalDiv = document.createElement('div');
-    totalDiv.id = 'cart-total';
-    totalDiv.style.fontWeight = 'bold';
-    totalDiv.textContent = `Итого: ${calculateTotal()} ₽`;
-    content.appendChild(createBlock(totalDiv));
-    
-    // === Блок "Договор" с правильными отступами ===
-    const contractContainer = document.createElement('div');
-    contractContainer.id = 'cart-contract';
+function renderCartSummary() {
+    removeCartSummary();
 
+    if (!state.cart.length) return;
 
-const contract = document.createElement('div');
-contract.innerHTML = `
-    <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <input type="checkbox" id="agree"> Я согласен
-    </label>
-    <button id="pay-button" disabled>
-        Оплатить заказ
-    </button>
-`;
-contractContainer.appendChild(contract);
-content.appendChild(createBlock(contractContainer));
+    const summary = document.createElement('div');
+    summary.id = 'cart-fixed-summary';
 
-    // disable/enable pay button based on agreement checkbox
+    const total = document.createElement('div');
+    total.id = 'cart-total';
+    total.textContent = `Итого: ${calculateTotal()} ₽`;
+
+    const contract = document.createElement('div');
+    contract.id = 'cart-contract';
+    contract.innerHTML = `
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <input type="checkbox" id="agree"> Я согласен
+        </label>
+        <button id="pay-button" disabled>Оплатить заказ</button>
+    `;
+
+    summary.appendChild(total);
+    summary.appendChild(contract);
+
+    document.body.appendChild(summary);
+
     const payBtn = contract.querySelector('#pay-button');
     const agreeCheckbox = contract.querySelector('#agree');
+
     agreeCheckbox.addEventListener('change', () => {
         payBtn.disabled = !agreeCheckbox.checked;
     });
+}
+
+function removeCartSummary() {
+    const existing = document.getElementById('cart-fixed-summary');
+    if (existing) existing.remove();
 }
 
 
@@ -502,10 +524,13 @@ function switchScreen(screen) {
         if (filterContainer) filterContainer.innerHTML = '';
         if (screen === 'cart') {
             renderCart();
-        } else if (screen === 'account') {
-            renderAccount();
-        } else if (screen === 'about') {
-            renderAbout();
+        } else {
+            removeCartSummary();
+            if (screen === 'account') {
+                renderAccount();
+            } else if (screen === 'about') {
+                renderAbout();
+            }
         }
     }
 }

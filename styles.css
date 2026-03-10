@@ -506,6 +506,32 @@ body {
     cursor: not-allowed;
 }
 
+/* fixed cart summary (total + pay) */
+#cart-fixed-summary {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--bottom-nav-height) + 10px);
+    padding: var(--space-md);
+    background: rgba(255, 255, 255, 0.95);
+    border-top: 1px solid var(--color-secondary);
+    box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.08);
+    max-width: var(--max-content-width);
+    margin: 0 auto;
+    z-index: 1500;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+#cart-fixed-summary #cart-total {
+    font-weight: bold;
+}
+
+#cart-fixed-summary #cart-contract {
+    margin: 0;
+}
+
 /* about screen */
 #about {
     padding: var(--space-md);
@@ -629,3 +655,5 @@ body {
     font-size: 0.85rem;
     color: rgba(0, 0, 0, 0.5);
 }
+
+
