@@ -282,7 +282,7 @@ body {
     justify-content: center;
 
     /* prevent text/buttons from resizing when font-weight changes */
-    padding: 0;
+    padding: 0px;
 
     color: #d2d2d2; /* default grey */
     transition: color 0.15s;
@@ -301,6 +301,12 @@ body {
     height: 50px;
     display: block;
     fill: var(--color-notactive); /* серый по умолчанию */
+}
+
+.nav-btn .cart1,
+.nav-btn .cart2 {
+    width: 53.5px !important;
+    height: 53.5px !important;
 }
 
 /* активная кнопка — синяя иконка */
