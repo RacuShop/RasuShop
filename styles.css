@@ -303,12 +303,6 @@ body {
     fill: var(--color-notactive); /* серый по умолчанию */
 }
 
-.nav-btn .cart1,
-.nav-btn .cart2 {
-    width: 53.5px !important;
-    height: 53.5px !important;
-}
-
 /* активная кнопка — синяя иконка */
 .nav-btn.active .nav-icon,
 .nav-btn:active .nav-icon {
