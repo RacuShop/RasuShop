@@ -185,6 +185,17 @@ body {
     background: rgba(18, 18, 175, 0.85);
     transform: scale(1.1);
 }
+.details-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: white;
+    pointer-events: none;
+}
+.details-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
 /* modal */
 #modal-overlay {
