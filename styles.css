@@ -319,6 +319,33 @@ body {
 .nav-btn.active .cat2 {
     display: block;
 }
+.nav-btn .cart2 {
+    display: none;
+}
+.nav-btn.active .cart1 {
+    display: none;
+}
+.nav-btn.active .cart2 {
+    display: block;
+}
+.nav-btn .acc2 {
+    display: none;
+}
+.nav-btn.active .acc1 {
+    display: none;
+}
+.nav-btn.active .acc2 {
+    display: block;
+}
+.nav-btn .inf2 {
+    display: none;
+}
+.nav-btn.active .inf1 {
+    display: none;
+}
+.nav-btn.active .inf2 {
+    display: block;
+}
 
 #cart-list {
     display: flex;
