@@ -264,7 +264,7 @@ body {
     left: 0;
     right: 0;
     height: var(--bottom-nav-height);
-    background: rgb(155, 137, 137);
+    background: rgb(255, 255, 255);
     display: flex;
     padding: 0 calc(var(--page-padding) + env(safe-area-inset-left)) 0 calc(var(--page-padding) + env(safe-area-inset-right));
     border-top: 0.25px solid var(--color-secondary);
@@ -299,8 +299,8 @@ body {
 
 /* ensure SVG icons are centred and size-consistent */
 .nav-btn .nav-icon {
-    width: 55px;
-    height: 55px;
+    width: 35px;
+    height: 35px;
     display: block;
     fill: var(--color-notactive); /* серый по умолчанию */
     margin: 0 auto; /* центрирует иконку внутри кнопки */
