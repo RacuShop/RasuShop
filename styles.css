@@ -266,6 +266,8 @@ body {
     height: var(--bottom-nav-height);
     background: white;
     display: flex;
+    gap: var(--space-sm);
+    padding: 0 calc(var(--page-padding) + env(safe-area-inset-left)) 0 calc(var(--page-padding) + env(safe-area-inset-right));
     border-top: 0.25px solid var(--color-secondary);
     z-index: 1000;
 }
@@ -280,7 +282,9 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 10px;
+
+    /* keep icons aligned when the active state uses bold text */
+    padding: 0;
 
     color: #d2d2d2; /* default grey */
     transition: color 0.15s;
