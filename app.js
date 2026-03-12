@@ -534,6 +534,81 @@ on(document, 'click', '#app-logo', () => {
     switchScreen('catalog');
 });
 
+// Payment button handler
+on(document, 'click', '#pay-button', async (e) => {
+    e.preventDefault();
+    const payBtn = e.target;
+    
+    try {
+        // Disable button and show loading state
+        payBtn.disabled = true;
+        const originalText = payBtn.textContent;
+        payBtn.textContent = 'Отправка заказа...';
+
+        // Collect data
+        const cartItems = state.cart;
+        const telegramId = telegramUser?.id;
+        const name = telegramUser?.first_name || 'Guest';
+        const username = telegramUser?.username || 'unknown';
+        const totalPrice = calculateTotal();
+
+        // Aggregate all survey answers
+        const surveyData = {};
+        Object.entries(state.surveys).forEach(([itemId, answers]) => {
+            const item = state.cart.find(i => i.id === parseInt(itemId));
+            if (item) {
+                surveyData[item.title] = answers;
+            }
+        });
+
+        // Send to API
+        const response = await fetch('/api/create-order', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                telegramId,
+                name,
+                username,
+                cartItems,
+                survey: surveyData,
+                totalPrice,
+            }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to create order');
+        }
+
+        // Success
+        console.log('Order created successfully:', result);
+        alert('Спасибо! Ваш заказ принят. В ближайшее время с вами свяжется менеджер.');
+        
+        // Clear cart
+        state.cart = [];
+        state.surveys = {};
+        state.deliveryPrice = 0;
+        saveCart();
+        
+        // Return to catalog
+        switchScreen('catalog');
+
+    } catch (error) {
+        console.error('Order submission error:', error);
+        alert(`Ошибка: ${error.message}`);
+        
+        // Re-enable button
+        const payBtn = $('#pay-button');
+        if (payBtn) {
+            payBtn.disabled = false;
+            payBtn.textContent = 'Оплатить заказ';
+        }
+    }
+});
+
 // initialization
 (() => {
     // restore cart immediately (localStorage API is synchronous)
