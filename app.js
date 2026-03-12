@@ -238,6 +238,47 @@ function closeModal({ save = true } = {}) {
     $('#modal-overlay').classList.add('hidden');
 }
 
+// Collect survey answers in readable format
+function collectSurveyData() {
+    const surveyObject = {};
+
+    // Collect data from survey question containers
+    document.querySelectorAll('[data-survey-question]').forEach(questionContainer => {
+        const questionText = questionContainer.getAttribute('data-survey-question');
+
+        // Look for checked radio button
+        const checkedRadio = questionContainer.querySelector('input[type="radio"]:checked');
+        if (checkedRadio) {
+            const label = checkedRadio.closest('label');
+            const answerText = label ? label.innerText.trim() : checkedRadio.value;
+            surveyObject[questionText] = answerText;
+            return;
+        }
+
+        // Look for text input or textarea
+        const textarea = questionContainer.querySelector('textarea');
+        if (textarea) {
+            surveyObject[questionText] = textarea.value.trim();
+            return;
+        }
+
+        const textInput = questionContainer.querySelector('input[type="text"]');
+        if (textInput) {
+            surveyObject[questionText] = textInput.value.trim();
+            return;
+        }
+    });
+
+    // Collect static survey text blocks
+    document.querySelectorAll('[data-survey-text]').forEach(blockContainer => {
+        const key = blockContainer.getAttribute('data-survey-text-label') || 'Тип заказа';
+        const text = blockContainer.getAttribute('data-survey-text');
+        surveyObject[key] = text;
+    });
+
+    return surveyObject;
+}
+
 function openSurveyModal(item) {
     state.modalMode = 'survey';
     state.modalItemId = item.id;
@@ -270,14 +311,14 @@ function openSurveyModal(item) {
         <div class="survey-modal">
             <h2>Опрос: ${item.title}</h2>
             ${template.fields.includes('vectorFile') ? `
-                <div class="survey-section">
+                <div class="survey-section" data-survey-question="Есть ли векторный файл?">
                     <div><strong>Есть ли векторный файл?</strong></div>
                     ${buildRadioGroup('survey-vector', [
                         { label: 'Да', value: 'yes' },
                         { label: 'Нет (добавить разработку дизайна)', value: 'no' },
                     ], survey.vectorFile)}
                 </div>
-                <div class="survey-section">
+                <div class="survey-section" data-survey-question="Тип подсветки">
                     <div><strong>Тип подсветки?</strong></div>
                     ${buildRadioGroup('survey-light', [
                         { label: 'Без подсветки', value: 'none' },
@@ -285,17 +326,17 @@ function openSurveyModal(item) {
                         { label: 'Сзади +100₽', value: 'back' },
                     ], survey.lightType)}
                 </div>
-                <div class="survey-section">
+                <div class="survey-section" data-survey-question="Адрес места установки">
                     <div><strong>Напишите адрес места установки:</strong></div>
                     <textarea id="survey-address" class="survey-textarea" maxlength="2000" placeholder="Введите адрес...">${survey.address || ''}</textarea>
                 </div>
             ` : `
-                <div class="survey-section">
+                <div class="survey-section" data-survey-question="Комментарии по заказу">
                     <div><strong>Комментарии по заказу</strong></div>
                     <textarea id="survey-address" class="survey-textarea" maxlength="2000" placeholder="Введите дополнительные детали...">${survey.address || ''}</textarea>
                 </div>
             `}
-            <div class="survey-section">
+            <div class="survey-section" data-survey-question="Выберите доставку">
                 <div><strong>Выберите доставку:</strong></div>
                 ${buildRadioGroup('survey-delivery', deliveryOptions, survey.delivery || state.deliveryPrice || 0)}
             </div>
@@ -552,14 +593,8 @@ on(document, 'click', '#pay-button', async (e) => {
         const username = telegramUser?.username || 'unknown';
         const totalPrice = calculateTotal();
 
-        // Aggregate all survey answers
-        const surveyData = {};
-        Object.entries(state.surveys).forEach(([itemId, answers]) => {
-            const item = state.cart.find(i => i.id === parseInt(itemId));
-            if (item) {
-                surveyData[item.title] = answers;
-            }
-        });
+        // Collect survey data in readable format
+        const survey = collectSurveyData();
 
         // Send to API
         const response = await fetch('/api/create-order', {
@@ -572,7 +607,7 @@ on(document, 'click', '#pay-button', async (e) => {
                 name,
                 username,
                 cartItems,
-                survey: surveyData,
+                survey,
                 totalPrice,
             }),
         });

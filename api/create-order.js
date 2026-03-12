@@ -20,16 +20,18 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
-        // Build order description text
+        // Build readable cart items text
         const cartItemsText = cartItems
-            .map(item => `  • ${item.title} — ${item.price} ₽`)
+            .map(item => `• ${item.title} — ${item.price} ₽`)
             .join('\n');
 
+        // Build readable survey answers text
         const surveyText = Object.entries(survey)
-            .filter(([key, value]) => value !== null && value !== undefined && value !== '')
-            .map(([key, value]) => `  • ${key}: ${value}`)
+            .filter(([question, answer]) => answer !== null && answer !== undefined && answer !== '')
+            .map(([question, answer]) => `• ${question}: ${answer}`)
             .join('\n');
 
+        // Build order description
         const description = `Telegram ID: ${telegramId}
 Имя: ${name}
 Контакт: https://t.me/${username}
@@ -40,8 +42,10 @@ ${cartItemsText}
 Опрос:
 ${surveyText}
 
-Стоимость:
-${totalPrice} ₽`;
+Стоимость: ${totalPrice} ₽`;
+
+        // Add timestamp for WEEEK task
+        const now = new Date().toISOString();
 
         // Call WEEEK API to create task
         const weeekResponse = await fetch('https://api.weeek.net/public/v1/tm/tasks', {
@@ -55,6 +59,7 @@ ${totalPrice} ₽`;
                 description: description,
                 boardId: 2,
                 projectId: 2,
+                dueDate: now,
             }),
         });
 
