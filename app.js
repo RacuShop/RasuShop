@@ -596,6 +596,15 @@ on(document, 'click', '#pay-button', async (e) => {
         // Collect survey data in readable format
         const survey = collectSurveyData();
 
+        console.log('Sending order data:', {
+            telegramId,
+            name,
+            username,
+            cartItems,
+            survey,
+            totalPrice,
+        });
+
         // Send to API
         const response = await fetch('/api/create-order', {
             method: 'POST',
@@ -614,8 +623,19 @@ on(document, 'click', '#pay-button', async (e) => {
 
         const result = await response.json();
 
+        console.log('API response:', result);
+
         if (!response.ok) {
-            throw new Error(result.error || 'Failed to create order');
+            // Build detailed error message
+            let errorMsg = result.error || 'Failed to create order';
+            if (result.details) {
+                if (typeof result.details === 'object') {
+                    errorMsg += ` – ${JSON.stringify(result.details).substring(0, 100)}`;
+                } else {
+                    errorMsg += ` – ${result.details}`;
+                }
+            }
+            throw new Error(errorMsg);
         }
 
         // Success
