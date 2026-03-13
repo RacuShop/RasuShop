@@ -185,8 +185,10 @@ function addProductToCart(productId) {
         surveyAnswers: []
     };
 
+    console.log('addProductToCart: adding new item', newItem);
     state.cart.push(newItem);
     saveCart();
+    console.log('addProductToCart: cart saved', state.cart);
     return newItem;
 }
 
@@ -250,7 +252,7 @@ function loadCart() {
                     };
                 });
             } else {
-                state.cart = parsed || [];
+                state.cart = [];
             }
         }
     } catch (e) {
@@ -261,6 +263,7 @@ function loadCart() {
 
 function saveCart() {
     try {
+        console.log('saveCart: saving', state.cart);
         localStorage.setItem('cart', JSON.stringify(state.cart));
     } catch (e) {
         console.error('Ошибка записи корзины в localStorage:', e);
@@ -953,20 +956,36 @@ on(document, 'click', '#modal-overlay', e => {
 });
 // Handle add to cart button in modal
 on(document, 'click', '#add-to-cart', e => {
-    const button = e.target;
-    const productId = parseInt(button.dataset.id, 10);
-    if (productId) {
-        addProductToCart(productId);
-        closeModal({ save: false });
-        const product = products.find(p => p.id === productId);
-        if (product) {
-            alert(`${product.title} добавлен в корзину!`);
-            switchScreen('cart');
-        }
+    console.log('ADD TO CART CLICKED');
+    e.preventDefault();
+    e.stopPropagation();
+
+    const button = e.target.closest('#add-to-cart');
+    console.log('BUTTON:', button);
+    if (!button) return;
+
+    const productId = Number(button.dataset.id);
+    console.log('PRODUCT ID:', productId);
+    if (!productId) return;
+
+    console.log('CART BEFORE:', state.cart);
+    addProductToCart(productId);
+    console.log('CART AFTER:', state.cart);
+
+    closeModal({ save: false });
+
+    const product = products.find(p => p.id === productId);
+    console.log('FOUND PRODUCT:', product);
+    if (product) {
+        alert(`${product.title} добавлен в корзину!`);
+        switchScreen('cart');
     }
 });
 // Handle add to cart final button in production survey
 on(document, 'click', '#add-to-cart-final', e => {
+    e.preventDefault();
+    e.stopPropagation();
+
     const survey = state.productionSurvey;
     const product = products.find(p => p.id === survey.productId);
     const finalPrice = parseFloat(product.price) + survey.totalExtraPrice;
