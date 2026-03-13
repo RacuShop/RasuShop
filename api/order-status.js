@@ -7,135 +7,117 @@
  */
 
 export default async function handler(req, res) {
-    // Only accept GET requests
+
+    // Only allow GET
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
     try {
+
         const { telegramId } = req.query;
 
-        // Validate required fields
         if (!telegramId) {
-            return res.status(400).json({ error: 'Missing telegramId parameter' });
+            return res.status(400).json({
+                error: 'Missing telegramId parameter'
+            });
         }
 
-        // Validate WEEEK API token
         if (!process.env.WEEEK_API_TOKEN) {
-            console.error('WEEEK_API_TOKEN is not set in environment variables');
+            console.error("WEEEK_API_TOKEN missing");
             return res.status(500).json({
-                error: 'Server configuration error',
-                message: 'WEEEK API token not configured',
+                error: "Server configuration error"
             });
         }
 
-        console.log('Searching for orders for Telegram ID:', telegramId);
+        console.log("Searching orders for Telegram ID:", telegramId);
 
-        // Call WEEEK API to get tasks
-        // Get tasks from project 2 (where orders are created)
-        const weeekResponse = await fetch(`https://api.weeek.net/public/v1/tm/tasks?projectId=2`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${process.env.WEEEK_API_TOKEN}`,
-                'Content-Type': 'application/json',
-            },
-        });
-
-        let responseData;
-        try {
-            const text = await weeekResponse.text();
-            responseData = text ? JSON.parse(text) : {};
-        } catch (e) {
-            console.error('Failed to parse WEEEK response:', e);
-            responseData = { error: 'Invalid JSON response from WEEEK' };
-        }
-
-        console.log('WEEEK response status:', weeekResponse.status);
-        console.log('WEEEK response data keys:', Object.keys(responseData));
-
-        // Handle authentication errors
-        if (weeekResponse.status === 401) {
-            console.error('WEEEK authentication failed - invalid token');
-            return res.status(401).json({
-                error: 'Authentication failed',
-                message: 'WEEEK API token is invalid or expired',
-            });
-        }
+        // Request tasks from WEEEK
+        const weeekResponse = await fetch(
+            "https://api.weeek.net/public/v1/tm/tasks?projectId=2",
+            {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${process.env.WEEEK_API_TOKEN}`,
+                    "Content-Type": "application/json",
+                },
+            }
+        );
 
         if (!weeekResponse.ok) {
-            console.error('WEEEK API error:', {
-                status: weeekResponse.status,
-                statusText: weeekResponse.statusText,
-                data: responseData,
-            });
-
+            console.error("WEEEK API error:", weeekResponse.status);
             return res.status(weeekResponse.status).json({
-                error: 'Failed to fetch tasks from WEEEK CRM',
-                details: responseData,
+                error: "Failed to fetch tasks from WEEEK"
             });
         }
 
-        // WEEEK API returns data in different formats
-        // Try different possible structures
+        const responseData = await weeekResponse.json();
+
+        console.log("WEEEK response keys:", Object.keys(responseData));
+
         let tasks = [];
-        if (responseData.data && Array.isArray(responseData.data)) {
-            tasks = responseData.data;
-        } else if (Array.isArray(responseData)) {
-            tasks = responseData;
-        } else if (responseData.tasks && Array.isArray(responseData.tasks)) {
+
+        if (Array.isArray(responseData.tasks)) {
             tasks = responseData.tasks;
+        } else if (Array.isArray(responseData.data)) {
+            tasks = responseData.data;
         }
 
-        console.log('Found tasks:', tasks.length);
+        console.log("Total tasks received:", tasks.length);
 
-        // Search for tasks that contain the Telegram ID in description
+        // Find tasks that contain Telegram ID
         const userTasks = tasks.filter(task => {
-            const description = task.description || '';
+            const description = task.description || "";
             return description.includes(`Telegram ID: ${telegramId}`);
         });
 
-        console.log('User tasks found:', userTasks.length);
+        console.log("User tasks found:", userTasks.length);
 
         if (userTasks.length === 0) {
             return res.status(200).json({
-                hasOrder: false,
+                hasOrder: false
             });
         }
 
-        // Sort tasks by ID (newest first)
+        // Sort newest first
         const sortedTasks = userTasks.sort((a, b) => (b.id || 0) - (a.id || 0));
         const latestTask = sortedTasks[0];
 
         console.log("LATEST TASK:", JSON.stringify(latestTask, null, 2));
-        // Extract status from the task
-        // In WEEEK, status might be in different fields
-        let status = 'Неизвестен';
 
-        if (latestTask.column && latestTask.column.title) {
-        status = latestTask.column.title;
-        } else if (latestTask.columnName) {
-        status = latestTask.columnName;
-        } else if (latestTask.statusName) {
-        status = latestTask.statusName;
-        }
+        // Map WEEEK column IDs → status names
+        const columnMap = {
+            1: "Поступил заказ",
+            2: "Разработка",
+            3: "Согласование",
+            4: "В производстве",
+            5: "Доставка партнёром",
+            6: "Готово"
+        };
 
-        console.log('Order status found:', status, 'for task:', latestTask.id);
+        const columnId = latestTask.boardColumnId;
+
+        console.log("COLUMN ID:", columnId);
+
+        const status = columnMap[columnId] || "Неизвестен";
+
+        console.log("Order status:", status);
 
         return res.status(200).json({
             hasOrder: true,
             status: status,
-            taskId: latestTask.id,
+            taskId: latestTask.id
         });
 
     } catch (error) {
-        console.error('Order status error:', {
-            message: error.message,
-            stack: error.stack,
-            type: error.constructor.name,
-        });
+
+        console.error("Order status error:", error);
+
         return res.status(500).json({
-            error: 'Internal server error',
-            message: error.message,
+            error: "Internal server error",
+            message: error.message
         });
+
     }
+
 }
