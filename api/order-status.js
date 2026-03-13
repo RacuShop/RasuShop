@@ -104,9 +104,9 @@ export default async function handler(req, res) {
 
         // Sort tasks by ID (newest first)
         const sortedTasks = userTasks.sort((a, b) => (b.id || 0) - (a.id || 0));
-
         const latestTask = sortedTasks[0];
 
+        console.log("LATEST TASK:", JSON.stringify(latestTask, null, 2));
         // Extract status from the task
         // In WEEEK, status might be in different fields
         let status = 'Неизвестен';
