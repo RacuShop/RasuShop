@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { telegramId, name, username, cartItems, survey, totalPrice } = req.body;
+        const { telegramId, name, username, cartItems, surveyAnswers, totalPrice } = req.body;
 
         // Validate required fields
         if (!telegramId || !name || !cartItems) {
@@ -37,8 +37,8 @@ export default async function handler(req, res) {
 
         // Build readable survey answers text
         const surveyText = (surveyAnswers || [])
-            .map(answer => `• ${answer.product}: ${answer.question} — ${answer.answer}`)
-            .join('\n');
+        .map(q => `• ${q.question}: ${q.answer}`)
+        .join('\n');
 
         // Build order description
         const description = `Telegram ID: ${telegramId}
