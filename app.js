@@ -33,12 +33,12 @@ const categories = [
     { id: 'documents', name: 'Документы' },
 ];
 const products = [
-    { id: 1, title: 'Экспресс-лого', categories: ['all','design'], price: '100', img: 'https://i.postimg.cc/zDgGfv7r/No-Img.jpg', desc: 'Описание товара 1' },
-    { id: 2, title: 'Отрисовка вектора', categories: ['all','design'], price: '200', img: 'https://i.postimg.cc/zDgGfv7r/No-Img.jpg', desc: 'Описание товара 2' },
-    { id: 3, title: 'Вывеска', categories: ['all','production'], price: '300', img: 'https://i.postimg.cc/xdG8xfDF/Signboard.jpg', desc: 'Описание товара 3' },
-    { id: 4, title: 'Короб', categories: ['all','production'], price: '400', img: 'https://i.postimg.cc/zDgGfv7r/No-Img.jpg', desc: 'Описание товара 4' },
-    { id: 5, title: 'Макет', categories: ['all','documents'], price: '500', img: 'https://i.postimg.cc/zDgGfv7r/No-Img.jpg', desc: 'Описание товара 5' },
-    { id: 6, title: 'Дизайн-проект', categories: ['all','documents'], price: '600', img: 'https://i.postimg.cc/zDgGfv7r/No-Img.jpg', desc: 'Описание товара 6' },
+    { id: 1, title: 'Экспресс-лого', categories: ['all','design'], price: '3 500', img: 'https://i.postimg.cc/zDgGfv7r/No-Img.jpg', desc: 'Описание товара 1' },
+    { id: 2, title: 'Отрисовка вектора', categories: ['all','design'], price: '1 500', img: 'https://i.postimg.cc/zDgGfv7r/No-Img.jpg', desc: 'Описание товара 2' },
+    { id: 3, title: 'Вывеска', categories: ['all','production'], price: '60 000', img: 'https://i.postimg.cc/xdG8xfDF/Signboard.jpg', desc: 'Описание товара 3' },
+    { id: 4, title: 'Короб', categories: ['all','production'], price: '8 000', img: 'https://i.postimg.cc/zDgGfv7r/No-Img.jpg', desc: 'Описание товара 4' },
+    { id: 5, title: 'Макет', categories: ['all','documents'], price: '2 500', img: 'https://i.postimg.cc/zDgGfv7r/No-Img.jpg', desc: 'Описание товара 5' },
+    { id: 6, title: 'Дизайн-проект', categories: ['all','documents'], price: '4 500', img: 'https://i.postimg.cc/zDgGfv7r/No-Img.jpg', desc: 'Описание товара 6' },
 ];
 
 // Survey configuration for different categories
