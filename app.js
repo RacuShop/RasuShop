@@ -55,50 +55,45 @@ const SURVEY_CONFIG = {
         type: "buttons",
         questions: [
             {
-                id: "Подсветка",
                 question: "Подсветка",
                 answers: [
-                    { text: "Без подсветки", price: 0, next: "Температура свечения" },
-                    { text: "Спереди", price: 0, next: "Температура свечения" },
-                    { text: "Сзади", price: 100, next: "Температура свечения" }
+                    { text: "Без подсветки", price: 0 },
+                    { text: "Спереди", price: 0 },
+                    { text: "Сзади", price: 100 }
                 ]
             },
             {
-                id: "Температура свечения",
-                question: "Температура свечения",
+                question: "Температура подсветки",
                 answers: [
-                    { text: "Холодное свечение", price: 0, next: "У вас есть исходник в векторном формате?" },
-                    { text: "Нейтральное свечение", price: 0, next: "У вас есть исходник в векторном формате?" },
-                    { text: "Тёплое свечение", price: 0, next: "У вас есть исходник в векторном формате?" }
+                    { text: "Холодное свечение (6000k)", price: 0 },
+                    { text: "Нейтральное свечение (4500k)", price: 0 },
+                    { text: "Тёплое свечение (3000k)", price: 0 }
                 ]
             },
             {
-                id: "У вас есть исходник в векторном формате?",
                 question: "У вас есть исходник в векторном формате?",
                 answers: [
-                    { text: "Да", price: 0, next: "Адрес" },
-                    { text: "Нет, потребуется разработка", price: 3 500, next: "Адрес" },
-                    { text: "Нет, потребуется отрисовка", price: 1 500, next: "Адрес" },
-                    { text: "Мне нужна стандартная надпись" price: 0, next: "Адрес" }
+                    { text: "Да", price: 0 },
+                    { text: "Нет, нужна разработка", price: 3500, autoAddProductId: 1 },
+                    { text: "Нет, нужна отрисовка", price: 1500, autoAddProductId: 2 },
+                    { text: "Нет, мне нужны стандартные символы", price: 0 }
                 ]
             },
             {
-                id: "Адрес",
                 question: "Адрес",
                 answers: [
-                    { text: "Москва", price: 0, next: "Монтаж" },
-                    { text: "МО", price: 100, next: "Монтаж" },
-                    { text: "Другие регионы", price: 200, next: "finish" }
+                    { text: "Москва", price: 0, nextQuestionIndex: 4 },
+                    { text: "МО", price: 100, nextQuestionIndex: 4 },
+                    { text: "Другие регионы", price: 200, nextQuestionIndex: null }
                 ]
             },
             {
-                id: "Монтаж",
                 question: "Монтаж",
                 answers: [
-                    { text: "Нужен", price: 0, next: "finish" },
-                    { text: "Не нужен", price: 0, next: "finish" }
+                    { text: "Самостоятельно", price: 0 },
+                    { text: "Нужен монтаж", price: 200 }
                 ]
-            },
+            }
         ]
     },
 
@@ -216,6 +211,30 @@ function addProductToCart(productId) {
 
 function removeProductFromCart(productId) {
     state.cart = state.cart.filter(i => i.id !== productId);
+    saveCart();
+    renderCart();
+}
+
+function ensureProductInCart(productId) {
+    const existing = state.cart.find(i => i.id === productId);
+    if (existing) return existing;
+    return addProductToCart(productId);
+}
+
+function applySurveyAnswerActions(survey) {
+    const config = getSurveyConfigForProduct(survey.productId);
+    if (!config || !Array.isArray(config.questions)) return;
+
+    config.questions.forEach((question, questionIndex) => {
+        const answer = survey.answers[questionIndex];
+        if (!answer) return;
+        const answerConfig = question.answers.find(a => a.text === answer.answer);
+        if (!answerConfig) return;
+
+        if (answerConfig.autoAddProductId) {
+            ensureProductInCart(answerConfig.autoAddProductId);
+        }
+    });
 }
 
 function getProductBasePrice(productId) {
@@ -385,12 +404,13 @@ function openProductionSurveyModal(product) {
         return;
     }
 
-    // Initialize survey state
+    // Initialize survey state with branching support
     state.productionSurvey = {
         productId: product.id,
-        currentQuestion: 0,
+        currentQuestionIndex: 0,
         answers: [],
-        totalExtraPrice: 0
+        totalExtraPrice: 0,
+        questionPath: [0]
     };
 
     renderProductionSurveyQuestion();
@@ -402,12 +422,12 @@ function renderProductionSurveyQuestion() {
     const survey = state.productionSurvey;
     const product = products.find(p => p.id === survey.productId);
     const config = getSurveyConfigForProduct(survey.productId);
-    const question = config.questions[survey.currentQuestion];
+    const question = config.questions[survey.currentQuestionIndex];
 
     content.innerHTML = `
         <div class="production-survey-modal">
             <div class="survey-progress">
-                Вопрос ${survey.currentQuestion + 1} из ${config.questions.length}
+                Вопрос ${survey.questionPath.length}
             </div>
             <h2>${product.title}</h2>
             <div class="survey-question">
@@ -421,7 +441,7 @@ function renderProductionSurveyQuestion() {
                 </div>
             </div>
             <div class="survey-footer">
-                ${survey.currentQuestion > 0 ? '<button id="prev-question">Назад</button>' : ''}
+                ${survey.questionPath.length > 1 ? '<button id="prev-question">Назад</button>' : ''}
                 <div class="price-info">
                     Итого: ${(parseFloat(product.price) + survey.totalExtraPrice)}₽
                 </div>
@@ -429,7 +449,6 @@ function renderProductionSurveyQuestion() {
         </div>
     `;
 
-    // Add event listeners
     content.querySelectorAll('.answer-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const index = parseInt(e.target.dataset.index);
@@ -446,11 +465,11 @@ function renderProductionSurveyQuestion() {
 function selectProductionSurveyAnswer(answerIndex, extraPrice) {
     const survey = state.productionSurvey;
     const config = getSurveyConfigForProduct(survey.productId);
-    const question = config.questions[survey.currentQuestion];
+    const question = config.questions[survey.currentQuestionIndex];
     const answer = question.answers[answerIndex];
 
-    // Save answer
-    survey.answers[survey.currentQuestion] = {
+    // Save answer for the current question index
+    survey.answers[survey.currentQuestionIndex] = {
         question: question.question,
         answer: answer.text,
         extraPrice: extraPrice
@@ -459,24 +478,32 @@ function selectProductionSurveyAnswer(answerIndex, extraPrice) {
     // Update total price
     survey.totalExtraPrice = survey.answers.reduce((sum, ans) => sum + (ans?.extraPrice || 0), 0);
 
-    // Move to next question or finish
-    if (survey.currentQuestion < config.questions.length - 1) {
-        survey.currentQuestion++;
-        renderProductionSurveyQuestion();
-    } else {
+    // Determine next question based on branching configuration
+    let nextIndex = typeof answer.nextQuestionIndex !== 'undefined'
+        ? answer.nextQuestionIndex
+        : survey.currentQuestionIndex + 1;
+
+    if (nextIndex === null) {
         finishProductionSurvey();
+        return;
     }
+
+    if (nextIndex >= config.questions.length) {
+        finishProductionSurvey();
+        return;
+    }
+
+    survey.currentQuestionIndex = nextIndex;
+    survey.questionPath.push(nextIndex);
+    renderProductionSurveyQuestion();
 }
 
 function goToPreviousQuestion() {
     const survey = state.productionSurvey;
-    if (survey.currentQuestion > 0) {
-        // Remove current answer
-        survey.answers[survey.currentQuestion] = null;
-        // Recalculate total price
+    if (survey.questionPath.length > 1) {
+        survey.questionPath.pop();
+        survey.currentQuestionIndex = survey.questionPath[survey.questionPath.length - 1];
         survey.totalExtraPrice = survey.answers.reduce((sum, ans) => sum + (ans?.extraPrice || 0), 0);
-        // Go back
-        survey.currentQuestion--;
         renderProductionSurveyQuestion();
     }
 }
@@ -1012,10 +1039,12 @@ on(document, 'click', '#add-to-cart-final', e => {
     const product = products.find(p => p.id === survey.productId);
     const finalPrice = parseFloat(product.price) + survey.totalExtraPrice;
 
-    // Add to cart with survey answers using the proper function
+    // Add any linked products from survey answers first
+    applySurveyAnswerActions(survey);
+
+    // Add the current production item to cart with survey answers
     const cartItem = addProductToCart(product.id);
     if (cartItem) {
-        // Update the item with survey answers and final price
         cartItem.finalPrice = finalPrice;
         cartItem.surveyAnswers = survey.answers.filter(ans => ans);
         saveCart();
