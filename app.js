@@ -1,6 +1,7 @@
 // Telegram WebApp initialization
 const tg = (typeof window !== 'undefined' && window.Telegram) ? window.Telegram.WebApp : null;
 
+//Принудительно применяет кастомные цвета через CSS, чтобы переопределить тему Telegram и сохранить единый стиль приложения.
 function applyThemeOverride() {
     // Telegram WebApp can inject its own theme styles. We keep our design stable by forcing
     // the colors we use (via CSS vars) and adding an important override stylesheet.
@@ -22,16 +23,18 @@ function applyThemeOverride() {
     document.head.appendChild(style);
 }
 
-// Telegram user metadata (from the WebApp init data)
+// Получает данные пользователя из Telegram (имя, ID, фото и т.д.) после запуска WebApp.
 const telegramUser = tg?.initDataUnsafe?.user || null;
 
-// data structures
+// --- КАТЕГОРИИ ТОВАРОВ ---
 const categories = [
     { id: 'all', name: 'Все' },
     { id: 'design', name: 'Дизайн' },
     { id: 'production', name: 'Производство' },
     { id: 'documents', name: 'Документы' },
 ];
+
+// --- НАСТРОЙКА ТОВАРОВ ---
 const products = [
     { id: 1, title: 'Экспресс-лого', categories: ['all','design'], price: '3 500', img: 'https://i.postimg.cc/zDgGfv7r/No-Img.jpg', desc: 'Описание товара 1' },
     { id: 2, title: 'Отрисовка вектора', categories: ['all','design'], price: '1 500', img: 'https://i.postimg.cc/zDgGfv7r/No-Img.jpg', desc: 'Описание товара 2' },
@@ -41,7 +44,7 @@ const products = [
     { id: 6, title: 'Дизайн-проект', categories: ['all','documents'], price: '4 500', img: 'https://i.postimg.cc/zDgGfv7r/No-Img.jpg', desc: 'Описание товара 6' },
 ];
 
-// Survey configuration for different categories
+// --- НАСТРОЙКА ОПРОСОВ ---
 const SURVEY_CONFIG = {
     design: {
         type: "textarea",
@@ -171,6 +174,7 @@ function isSurveyCompleteForCartItem(item) {
     return true;
 }
 
+//Добавляет товар в корзину
 function addProductToCart(productId) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
@@ -211,18 +215,21 @@ function addProductToCart(productId) {
     return newItem;
 }
 
+//Удаляет товар из корзины и сохраняет изменения.
 function removeProductFromCart(productId) {
     state.cart = state.cart.filter(i => i.id !== productId);
     saveCart();
     renderCart();
 }
 
+//Проверяет, есть ли товар в корзине, и добавляет, если нет.
 function ensureProductInCart(productId) {
     const existing = state.cart.find(i => i.id === productId);
     if (existing) return existing;
     return addProductToCart(productId);
 }
 
+//Автоматически добавляет дополнительные услуги (например, "Экспресс-лого"), если выбраны в опросе.
 function applySurveyAnswerActions(survey) {
     const config = getSurveyConfigForProduct(survey.productId);
     if (!config || !Array.isArray(config.questions)) return;
@@ -239,11 +246,13 @@ function applySurveyAnswerActions(survey) {
     });
 }
 
+//Возвращает базовую цену товара из массива 
 function getProductBasePrice(productId) {
     const product = products.find(p => p.id === productId);
     return product ? parsePrice(product.price) : 0;
 }
 
+//Преобразует строку с ценой (например, "3 500") в число, удаляя пробелы и заменяя запятые.
 function parsePrice(value) {
     if (typeof value === 'string') {
         const normalized = value.replace(/\s+/g, '').replace(/,/g, '.');
@@ -252,6 +261,7 @@ function parsePrice(value) {
     return typeof value === 'number' ? value : 0;
 }
 
+//Считает дополнительные затраты по опросу: основные и отдельные услуги.
 function getProductionSurveyTotals(survey) {
     return survey.answers.reduce((totals, ans) => {
         if (!ans) return totals;
@@ -265,6 +275,7 @@ function getProductionSurveyTotals(survey) {
     }, { mainExtras: 0, separateServices: 0 });
 }
 
+//Определяет категорию товара по его ID.
 function getProductCategory(productId) {
     const product = products.find(p => p.id === productId);
     if (!product) return null;
@@ -276,6 +287,7 @@ function getProductCategory(productId) {
     return null;
 }
 
+//Обновляет итоговую цену товара в корзине (база + допы), сохраняет и перерисовывает.
 function updateCartItemPrice(itemId, extraPrice) {
     const item = state.cart.find(i => i.id === itemId);
     if (item) {
@@ -285,6 +297,7 @@ function updateCartItemPrice(itemId, extraPrice) {
     }
 }
 
+// Обновляет ответы на опрос для товара в корзине.
 function updateCartItemSurvey(itemId, surveyAnswers) {
     const item = state.cart.find(i => i.id === itemId);
     if (item) {
@@ -294,7 +307,7 @@ function updateCartItemSurvey(itemId, surveyAnswers) {
     }
 }
 
-// --- cart persistence helpers (localStorage) ---
+// Загружает корзину из localStorage, мигрирует старый формат, если нужно.
 function loadCart() {
     try {
         const raw = localStorage.getItem('cart');
@@ -326,6 +339,7 @@ function loadCart() {
     }
 }
 
+//Сохраняет текущее состояние корзины
 function saveCart() {
     try {
         console.log('saveCart: saving', state.cart);
@@ -335,7 +349,7 @@ function saveCart() {
     }
 }
 
-// render functions
+// Рендер дизайна
 function renderCategoryFilter() {
     const container = $('#category-filter');
     container.innerHTML = '';
@@ -355,6 +369,7 @@ function renderCategoryFilter() {
     });
 }
 
+// Отображает сетку товаров в зависимости от выбранной категории.
 function renderCatalog() {
     const content = $('#content');
     content.innerHTML = '';
@@ -392,6 +407,7 @@ function renderCatalog() {
     content.appendChild(grid);
 }
 
+// Открывает модальное окно: либо детали товара, либо опрос (если требуется).
 function openModal(product) {
     const overlay = $('#modal-overlay');
 
@@ -415,6 +431,7 @@ function openModal(product) {
     }
 }
 
+// Открывает многошаговый опрос для товаров категории "Производство".
 function openProductionSurveyModal(product) {
     state.modalMode = 'production-survey';
     state.modalItemId = product.id;
@@ -523,6 +540,7 @@ function selectProductionSurveyAnswer(answerIndex, extraPrice) {
     renderProductionSurveyQuestion();
 }
 
+// Возвращает пользователя к предыдущему вопросу в опросе.
 function goToPreviousQuestion() {
     const survey = state.productionSurvey;
     if (survey.questionPath.length > 1) {
@@ -533,6 +551,7 @@ function goToPreviousQuestion() {
     }
 }
 
+// --- ИТОГИ ОПРОСА ---
 function finishProductionSurvey() {
     const survey = state.productionSurvey;
     const product = products.find(p => p.id === survey.productId);
@@ -574,6 +593,7 @@ function finishProductionSurvey() {
     content.querySelector('#prev-question').addEventListener('click', goToPreviousQuestion);
 }
 
+// Закрывает модальное окно
 function closeModal({ save = true } = {}) {
     if (save && state.modalMode === 'survey' && state.modalItemId != null) {
         saveSurveyFromModal();
@@ -624,6 +644,7 @@ function collectSurveyData() {
     return surveyObject;
 }
 
+// Открывает устаревший/альтернативный опрос 
 function openSurveyModal(item) {
     state.modalMode = 'survey';
     state.modalItemId = item.id;
@@ -707,6 +728,7 @@ function openSurveyModal(item) {
     overlay.classList.remove('hidden');
 }
 
+// Сохраняет данные из альтернативного опроса, обновляет корзину и цены.
 function saveSurveyFromModal() {
     if (state.modalMode !== 'survey' || state.modalItemId == null) return;
     const itemId = state.modalItemId;
@@ -748,12 +770,14 @@ function saveSurveyFromModal() {
     renderCart();
 }
 
+// Подсвечивает активную кнопку нижнего меню (каталог, корзина и т.д.).
 function renderBottomNav() {
     document.querySelectorAll('#bottom-nav .nav-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.screen === state.screen);
     });
 }
 
+// Отрисовывает содержимое корзины: список товаров, удаление, опросы, итог, чекбокс согласия.
 function renderCart() {
     const content = $('#content');
     content.innerHTML = '';
@@ -860,6 +884,7 @@ function renderCart() {
     }
 }
 
+// Открывает текстовый опрос для товаров "Дизайн" и "Документы".
 function openCartItemSurveyModal(item) {
     state.modalMode = 'cart-survey';
     state.modalItemId = item.id;
@@ -910,6 +935,7 @@ function openCartItemSurveyModal(item) {
     overlay.classList.remove('hidden');
 }
 
+// Сохраняет текстовый ответ из опроса в корзине.
 function saveCartItemSurvey(itemId) {
     const item = state.cart.find(i => i.id === itemId);
     if (!item) return;
@@ -930,11 +956,13 @@ function saveCartItemSurvey(itemId) {
     }
 }
 
+// Отображает страницу "О проекте".
 function renderAbout() {
     const content = $('#content');
     content.innerHTML = '<div id="about"><p>О проекте</p></div>';
 }
 
+// Показывает профиль пользователя: аватар, имя, ID и статус заказа.
 function renderAccount() {
     const content = $('#content');
     content.innerHTML = '';
@@ -976,6 +1004,7 @@ function renderAccount() {
     loadOrderStatus();
 }
 
+// Загружает статус активного заказа пользователя с бэкенда.
 async function loadOrderStatus() {
     const tg = window.Telegram?.WebApp;
     const user = tg?.initDataUnsafe?.user;
@@ -1008,6 +1037,7 @@ async function loadOrderStatus() {
     }
 }
 
+// Переключает между экранами: каталог, корзина, аккаунт, о проекте.
 function switchScreen(screen) {
     state.screen = screen;
     renderBottomNav();
@@ -1029,7 +1059,7 @@ function switchScreen(screen) {
     }
 }
 
-// event listeners
+// --- РАБОТА КЛИКОВ ---
 on(document, 'click', '#modal-close', closeModal);
 on(document, 'click', '#modal-overlay', e => {
     if (e.target.id === 'modal-overlay') closeModal();
@@ -1200,6 +1230,7 @@ on(document, 'click', '#pay-button', async (e) => {
         }
     }
 });
+
 
 // initialization
 (() => {

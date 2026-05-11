@@ -1,4 +1,7 @@
-/* design settings block */
+/* ────────────────────────────────────────────────────── */
+/* 1. ГЛОБАЛЬНЫЕ НАСТРОЙКИ И ПЕРЕМЕННЫЕ */
+/*    — цвета, шрифты, отступы, reset */
+/* ────────────────────────────────────────────────────── */
 :root {
     /* colors */
     --color-primary: rgb(18, 18, 175);
@@ -32,7 +35,7 @@
     --max-content-width: 2000px;  /* макс. ширина контента */
 }
 
-/* global resets and layout */
+/* Общий layout */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -56,7 +59,10 @@ body {
     flex-direction: column;
 }
 
-/* header */
+/* ────────────────────────────────────────────────────── */
+/* 2. ШАПКА И НАВИГАЦИЯ */
+/*    — логотип, хедер, нижнее меню */
+/* ────────────────────────────────────────────────────── */
 #app-header {
     position: fixed;
     top: 0;
@@ -82,7 +88,7 @@ body {
     width: auto;
 }    
 
-/* main container respects header and bottom nav */
+/* Контейнер с отступами под хедер */
 #app-main {
     padding-top: var(--header-height);
     padding-bottom: var(--bottom-nav-height);
@@ -90,7 +96,10 @@ body {
     overflow-y: auto;
 }
 
-/* category filter */
+/* ────────────────────────────────────────────────────── */
+/* 3. КАТАЛОГ ТОВАРОВ */
+/*    — сетка, карточки, кнопки "Подробнее" */
+/* ────────────────────────────────────────────────────── */
 #category-filter {
     display: flex;
     justify-content: center;
@@ -120,7 +129,7 @@ body {
     border-color: var(--color-primary);
 }
 
-/* catalog grid */
+/* Сетка товаров */
 #catalog {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -198,7 +207,10 @@ body {
     justify-content: center;
 }
 
-/* modal */
+/* ────────────────────────────────────────────────────── */
+/* 4. МОДАЛЬНЫЕ ОКНА */
+/*    — общие стили, детали товара, опросы */
+/* ────────────────────────────────────────────────────── */
 #modal-overlay {
     position: fixed;
     inset: 0;
@@ -268,7 +280,7 @@ body {
     background-color: rgb(65, 65, 230);
 }
 
-/* bottom nav */
+/*  Нижняя навигация (иконки + текст) */
 #bottom-nav {
     position: fixed;
     bottom: 0;
@@ -281,6 +293,7 @@ body {
     border-top: 0.25px solid var(--color-secondary);
     z-index: 1000;
 }
+/* Кнопки в нижнем меню */
 .nav-btn {
     flex: 1;
     border: none;
@@ -309,7 +322,7 @@ body {
     font-weight: bold;
 }
 
-/* ensure SVG icons are centred and size-consistent */
+/* SVG вырванивание иконок */
 .nav-btn .nav-icon {
     width: 25px;
     height: 25px;
@@ -319,13 +332,13 @@ body {
     flex-shrink: 0; /* предотвращает сжатие иконки на узких экранах */
 }
 
-/* активная кнопка — синяя иконка */
+/* Активная кнопка — синяя иконка */
 .nav-btn.active .nav-icon,
 .nav-btn:active .nav-icon {
     fill: var(--color-text); /* твой синий цвет */
 }
 
-/* switch between two catalog icon variants */
+/* Переключение между двумя вариантами иконок каталога */
 .nav-btn .cat2 {
     display: none;
 }
@@ -345,6 +358,10 @@ body {
     display: block;
 }
 
+/* ────────────────────────────────────────────────────── */
+/* 5. КОРЗИНА */
+/*    — список товаров, удаление, итог, кнопка оплаты */
+/* ────────────────────────────────────────────────────── */
 #cart-list {
     display: flex;
     flex-direction: column;
@@ -531,7 +548,10 @@ body {
     padding: var(--space-md);
 }
 
-/* account screen */
+/* ────────────────────────────────────────────────────── */
+/* 7. СТРАНИЦЫ: АККАУНТ, О ПРОЕКТЕ */
+/*    — профиль пользователя, статус заказа */
+/* ────────────────────────────────────────────────────── */
 .account-card {
     background: white;
     border-radius: var(--radius-md);
@@ -622,6 +642,10 @@ body {
     gap: var(--space-sm);
 }
 
+/* ────────────────────────────────────────────────────── */
+/* 6. ФОРМЫ И ИНТЕРАКТИВНЫЕ ЭЛЕМЕНТЫ */
+/*    — чекбоксы, радио-кнопки, поля ввода */
+/* ────────────────────────────────────────────────────── */
 .survey-radio-group {
     display: flex;
     flex-wrap: wrap;
