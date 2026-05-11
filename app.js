@@ -176,7 +176,7 @@ function addProductToCart(productId) {
     if (!product) return;
 
     const category = getProductCategory(productId);
-    const basePrice = parseFloat(product.price) || 0;
+    const basePrice = parsePrice(product.price);
 
     // Check if already in cart
     const existingItemIndex = state.cart.findIndex(item => item.id === productId);
@@ -184,6 +184,7 @@ function addProductToCart(productId) {
         // Update existing item
         const existingItem = state.cart[existingItemIndex];
         existingItem.title = product.title; // Update title in case it changed
+        existingItem.img = product.img;
         existingItem.basePrice = basePrice;
         existingItem.finalPrice = basePrice; // Reset to base price, survey will modify if needed
         existingItem.category = category;
@@ -196,6 +197,7 @@ function addProductToCart(productId) {
     const newItem = {
         id: product.id,
         title: product.title,
+        img: product.img,
         basePrice: basePrice,
         finalPrice: basePrice,
         category: category,
@@ -239,7 +241,28 @@ function applySurveyAnswerActions(survey) {
 
 function getProductBasePrice(productId) {
     const product = products.find(p => p.id === productId);
-    return product ? parseFloat(product.price) || 0 : 0;
+    return product ? parsePrice(product.price) : 0;
+}
+
+function parsePrice(value) {
+    if (typeof value === 'string') {
+        const normalized = value.replace(/\s+/g, '').replace(/,/g, '.');
+        return parseFloat(normalized) || 0;
+    }
+    return typeof value === 'number' ? value : 0;
+}
+
+function getProductionSurveyTotals(survey) {
+    return survey.answers.reduce((totals, ans) => {
+        if (!ans) return totals;
+        const extra = parsePrice(ans.extraPrice);
+        if (ans.autoAddProductId) {
+            totals.separateServices += extra;
+        } else {
+            totals.mainExtras += extra;
+        }
+        return totals;
+    }, { mainExtras: 0, separateServices: 0 });
 }
 
 function getProductCategory(productId) {
@@ -281,11 +304,12 @@ function loadCart() {
                 // Migrate old format to new format
                 state.cart = parsed.map(item => {
                     const category = getProductCategory(item.id);
-                    const basePrice = parseFloat(item.price || item.basePrice) || 0;
-                    const finalPrice = parseFloat(item.finalPrice) || basePrice;
+                    const basePrice = parsePrice(item.price || item.basePrice);
+                    const finalPrice = parsePrice(item.finalPrice) || basePrice;
                     return {
                         id: item.id,
                         title: item.title,
+                        img: item.img || products.find(p => p.id === item.id)?.img || 'https://via.placeholder.com/130x97?text=No+Image',
                         basePrice: basePrice,
                         finalPrice: finalPrice,
                         category: category,
@@ -443,7 +467,7 @@ function renderProductionSurveyQuestion() {
             <div class="survey-footer">
                 ${survey.questionPath.length > 1 ? '<button id="prev-question">Назад</button>' : ''}
                 <div class="price-info">
-                    Итого: ${(parseFloat(product.price) + survey.totalExtraPrice)}₽
+                    Итого: ${(parsePrice(product.price) + survey.totalExtraPrice)}₽
                 </div>
             </div>
         </div>
@@ -472,7 +496,8 @@ function selectProductionSurveyAnswer(answerIndex, extraPrice) {
     survey.answers[survey.currentQuestionIndex] = {
         question: question.question,
         answer: answer.text,
-        extraPrice: extraPrice
+        extraPrice: extraPrice,
+        autoAddProductId: answer.autoAddProductId || null
     };
 
     // Update total price
@@ -511,7 +536,9 @@ function goToPreviousQuestion() {
 function finishProductionSurvey() {
     const survey = state.productionSurvey;
     const product = products.find(p => p.id === survey.productId);
-    const finalPrice = parseFloat(product.price) + survey.totalExtraPrice;
+    const totals = getProductionSurveyTotals(survey);
+    const mainFinalPrice = parsePrice(product.price) + totals.mainExtras;
+    const overallTotal = mainFinalPrice + totals.separateServices;
 
     const content = $('#modal-content');
     content.innerHTML = `
@@ -522,7 +549,11 @@ function finishProductionSurvey() {
             <h2>${product.title}</h2>
             <div class="survey-summary">
                 <div class="final-price">
-                    Итоговая цена: ${finalPrice}₽
+                    Итоговая цена: ${overallTotal}₽
+                </div>
+                <div class="survey-breakdown" style="margin-bottom:12px;">
+                    <div>Основной товар: ${mainFinalPrice}₽</div>
+                    ${totals.separateServices > 0 ? `<div>Доп. услуги: ${totals.separateServices}₽</div>` : ''}
                 </div>
                 <div class="survey-answers">
                     ${survey.answers.filter(ans => ans).map(ans => `
@@ -1037,7 +1068,8 @@ on(document, 'click', '#add-to-cart-final', e => {
 
     const survey = state.productionSurvey;
     const product = products.find(p => p.id === survey.productId);
-    const finalPrice = parseFloat(product.price) + survey.totalExtraPrice;
+    const totals = getProductionSurveyTotals(survey);
+    const mainFinalPrice = parsePrice(product.price) + totals.mainExtras;
 
     // Add any linked products from survey answers first
     applySurveyAnswerActions(survey);
@@ -1045,7 +1077,7 @@ on(document, 'click', '#add-to-cart-final', e => {
     // Add the current production item to cart with survey answers
     const cartItem = addProductToCart(product.id);
     if (cartItem) {
-        cartItem.finalPrice = finalPrice;
+        cartItem.finalPrice = mainFinalPrice;
         cartItem.surveyAnswers = survey.answers.filter(ans => ans);
         saveCart();
     }
