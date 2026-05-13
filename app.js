@@ -851,22 +851,59 @@ function renderCart() {
         totalDiv.textContent = `Итого: ${calculateTotal()} ₽`;
         content.appendChild(createBlock(totalDiv));
 
-        // === TEST BUTTON (можешь потом удалить) ===
-        const testBtn = document.createElement('button');
-        testBtn.textContent = 'ТЕСТ КНОПКА';
-        testBtn.style.width = '100%';
-        testBtn.style.padding = '12px';
-        testBtn.style.marginTop = '10px';
-        testBtn.style.background = '#000';
-        testBtn.style.color = '#fff';
-        testBtn.style.border = 'none';
-        testBtn.style.borderRadius = '8px';
+        // === FILE UPLOAD TEST ===
+const fileInput = document.createElement('input');
+fileInput.type = 'file';
+fileInput.style.marginTop = '10px';
+fileInput.style.width = '100%';
 
-        testBtn.addEventListener('click', () => {
-            alert('Кнопка работает 👍');
+const uploadBtn = document.createElement('button');
+uploadBtn.textContent = 'ЗАГРУЗИТЬ ФАЙЛ НА СЕРВЕР';
+uploadBtn.style.width = '100%';
+uploadBtn.style.padding = '12px';
+uploadBtn.style.marginTop = '10px';
+uploadBtn.style.background = '#007aff';
+uploadBtn.style.color = '#fff';
+uploadBtn.style.border = 'none';
+uploadBtn.style.borderRadius = '8px';
+
+uploadBtn.addEventListener('click', async () => {
+    const file = fileInput.files[0];
+
+    if (!file) {
+        alert('Выбери файл сначала');
+        return;
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('telegramId', telegramUser?.id || '');
+        formData.append('name', telegramUser?.first_name || 'TEST');
+
+        const response = await fetch('/api/upload-file', {
+            method: 'POST',
+            body: formData
         });
 
-        content.appendChild(createBlock(testBtn));
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'Upload failed');
+        }
+
+        alert('Файл успешно загружен 👍');
+        console.log('UPLOAD RESULT:', result);
+
+    } catch (err) {
+        console.error(err);
+        alert('Ошибка загрузки: ' + err.message);
+    }
+});
+
+// вставка в DOM
+content.appendChild(createBlock(fileInput));
+content.appendChild(createBlock(uploadBtn));
 
         // Contract block
         const contractContainer = document.createElement('div');
