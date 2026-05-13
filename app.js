@@ -851,6 +851,23 @@ function renderCart() {
         totalDiv.textContent = `Итого: ${calculateTotal()} ₽`;
         content.appendChild(createBlock(totalDiv));
 
+        // === TEST BUTTON (можешь потом удалить) ===
+        const testBtn = document.createElement('button');
+        testBtn.textContent = 'ТЕСТ КНОПКА';
+        testBtn.style.width = '100%';
+        testBtn.style.padding = '12px';
+        testBtn.style.marginTop = '10px';
+        testBtn.style.background = '#000';
+        testBtn.style.color = '#fff';
+        testBtn.style.border = 'none';
+        testBtn.style.borderRadius = '8px';
+
+        testBtn.addEventListener('click', () => {
+            alert('Кнопка работает 👍');
+        });
+
+        content.appendChild(createBlock(testBtn));
+
         // Contract block
         const contractContainer = document.createElement('div');
         contractContainer.id = 'cart-contract';
