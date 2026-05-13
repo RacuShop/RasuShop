@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { telegramId, name, username, cartItems, surveyAnswers, totalPrice } = req.body;
+        const { telegramId, name, username, cartItems, surveyAnswers, totalPrice, uploadedFiles, uploadedFilePaths } = req.body;
 
         // Validate required fields
         if (!telegramId || !name || !cartItems) {
@@ -40,6 +40,10 @@ export default async function handler(req, res) {
         .map(q => `• ${q.question}: ${q.answer}`)
         .join('\n');
 
+        // Build readable uploaded files text
+        const uploadedFilesText = (uploadedFiles || []).map(file => `• ${file.name} (${file.size} Б)`).join('\n');
+        const uploadedPathsText = (uploadedFilePaths || []).map(path => `• ${path}`).join('\n');
+
         // Build order description
         const description = `Telegram ID: ${telegramId}
 Имя: ${name}
@@ -51,7 +55,7 @@ ${cartItemsText}
 Опрос:
 ${surveyText}
 
-Стоимость: ${totalPrice} ₽`;
+${uploadedFilesText ? `Загруженные файлы:\n${uploadedFilesText}\n\n` : ''}${uploadedPathsText ? `Путь на диске:\n${uploadedPathsText}\n\n` : ''}Стоимость: ${totalPrice} ₽`;
 
         const title = `Новый заказ — ${name}`;
         const projectId = 2;

@@ -113,6 +113,7 @@ let state = {
     screen: 'catalog', // catalog, cart, account, about
     activeCategory: null,
     cart: [], // each item: { id, title, basePrice, finalPrice, category, surveyAnswers: [] }
+    uploadedFiles: [], // files selected for upload before order submission
     modalMode: null,      // 'survey' | 'product' | null
     modalItemId: null,    // which item is currently being edited in survey
     productionSurvey: {}, // temporary storage for production survey before adding to cart
@@ -305,6 +306,83 @@ function updateCartItemSurvey(itemId, surveyAnswers) {
         saveCart();
         renderCart();
     }
+}
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return `${bytes} Б`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} КБ`;
+    return `${Math.round(bytes / 1024 / 1024)} МБ`;
+}
+
+function addUploadedFiles(files) {
+    const newFiles = Array.from(files).map((file, index) => ({
+        id: `${file.name}-${file.size}-${file.lastModified}-${Date.now()}-${index}`,
+        fileObj: file,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
+    }));
+
+    state.uploadedFiles = [...state.uploadedFiles, ...newFiles];
+}
+
+function removeUploadedFile(fileId) {
+    const removed = state.uploadedFiles.find(f => f.id === fileId);
+    if (removed?.previewUrl) {
+        URL.revokeObjectURL(removed.previewUrl);
+    }
+    state.uploadedFiles = state.uploadedFiles.filter(file => file.id !== fileId);
+    renderCart();
+}
+
+function clearUploadedFiles() {
+    state.uploadedFiles.forEach(file => {
+        if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
+    });
+    state.uploadedFiles = [];
+}
+
+function renderUploadedFilesList(container) {
+    if (!container) return;
+
+    if (state.uploadedFiles.length === 0) {
+        container.innerHTML = `<div class="upload-hint" style="color:#666;font-size:0.95rem;">Вы можете загрузить файлы к заказу после выбора.</div>`;
+        return;
+    }
+
+    container.innerHTML = state.uploadedFiles.map(file => `
+        <div class="uploaded-file-item" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:10px;min-width:220px;max-width:280px;">
+            <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
+                ${file.previewUrl ? `<img src="${file.previewUrl}" alt="${file.name}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;" />` : `<div style="width:48px;height:48px;background:#f0f0f0;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#777;font-size:0.85rem;">Ф</div>`}
+                <div style="min-width:0;">
+                    <div style="font-size:0.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${file.name}</div>
+                    <div style="font-size:0.82rem;color:#666;">${formatFileSize(file.size)}</div>
+                </div>
+            </div>
+            <button type="button" class="remove-uploaded-file" data-id="${file.id}" style="border:none;background:transparent;color:#c00;font-size:1.2rem;cursor:pointer;">✕</button>
+        </div>
+    `).join('');
+}
+
+async function uploadFilesToDisk(telegramId) {
+    if (!telegramId) throw new Error('Telegram ID is required for file upload');
+    if (!state.uploadedFiles.length) return { uploadedFiles: [] };
+
+    const formData = new FormData();
+    formData.append('telegramId', telegramId);
+    state.uploadedFiles.forEach(file => formData.append('file', file.fileObj));
+
+    const response = await fetch('/api/upload-file', {
+        method: 'POST',
+        body: formData,
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || 'Не удалось загрузить файлы на диск');
+    }
+    return result;
 }
 
 // Загружает корзину из localStorage, мигрирует старый формат, если нужно.
@@ -858,7 +936,12 @@ function renderCart() {
         const allSurveysCompleted = state.cart.every(item => isSurveyCompleteForCartItem(item));
         const contract = document.createElement('div');
         contract.innerHTML = `
-            <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div class="upload-files-section" style="border-top:1px solid rgba(0,0,0,.15); padding-top:16px; margin-top:16px;">
+                <button id="file-upload-button" class="primary-btn" style="padding:12px 16px; font-size:0.95rem;">Загрузить файлы</button>
+                <input type="file" id="file-upload-input" multiple style="display:none;" />
+                <div id="uploaded-files-list" class="uploaded-files-list" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:10px;"></div>
+            </div>
+            <label style="display:flex;align-items:center;gap:8px;margin:16px 0 8px;">
                 <input type="checkbox" id="agree">
                 Я согласен с условиями
             </label>
@@ -868,6 +951,7 @@ function renderCart() {
         `;
         contractContainer.appendChild(contract);
         content.appendChild(createBlock(contractContainer));
+        renderUploadedFilesList(contract.querySelector('#uploaded-files-list'));
 
         // Enable/disable pay button based on surveys and agreement
         const payBtn = contract.querySelector('#pay-button');
@@ -1119,6 +1203,28 @@ on(document, 'click', '#add-to-cart-final', e => {
     // Switch to cart view
     switchScreen('cart');
 });
+
+on(document, 'click', '#file-upload-button', e => {
+    e.preventDefault();
+    const input = document.getElementById('file-upload-input');
+    if (input) input.click();
+});
+
+on(document, 'change', '#file-upload-input', e => {
+    const input = e.target;
+    if (input.files && input.files.length) {
+        addUploadedFiles(input.files);
+        input.value = '';
+        renderCart();
+    }
+});
+
+on(document, 'click', '.remove-uploaded-file', e => {
+    const button = e.target.closest('.remove-uploaded-file');
+    if (!button) return;
+    const fileId = button.dataset.id;
+    removeUploadedFile(fileId);
+});
 on(document, 'click', '#bottom-nav .nav-btn', e => {
     const button = e.target.closest('.nav-btn');
     if (button && button.dataset.screen) {
@@ -1173,6 +1279,12 @@ on(document, 'click', '#pay-button', async (e) => {
         });
 
         // Send to API
+        let uploadedFilesResult = { uploadedFiles: [] };
+        if (state.uploadedFiles.length > 0) {
+            payBtn.textContent = 'Загрузка файлов...';
+            uploadedFilesResult = await uploadFilesToDisk(telegramId);
+        }
+
         const response = await fetch('/api/create-order', {
             method: 'POST',
             headers: {
@@ -1185,6 +1297,12 @@ on(document, 'click', '#pay-button', async (e) => {
                 cartItems,
                 surveyAnswers,
                 totalPrice,
+                uploadedFiles: state.uploadedFiles.map(file => ({
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                })),
+                uploadedFilePaths: uploadedFilesResult.uploadedFiles || [],
             }),
         });
 
@@ -1209,8 +1327,9 @@ on(document, 'click', '#pay-button', async (e) => {
         console.log('Order created successfully:', result);
         alert('Спасибо! Ваш заказ принят. В ближайшее время с вами свяжется менеджер.');
         
-        // Clear cart
+        // Clear cart and uploaded files
         state.cart = [];
+        clearUploadedFiles();
         state.surveys = {};
         state.deliveryPrice = 0;
         saveCart();
