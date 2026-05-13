@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Тест загрузки файла</h2>
+
+<input type="file" id="file" />
+<br><br>
+
+<button onclick="send()">Отправить файл</button>
+
+<script>
+async function send() {
+
+    const file = document.getElementById("file").files[0];
+
+    const formData = new FormData();
+
+    formData.append("telegramId", "123456789");
+    formData.append("file", file);
+
+    const res = await fetch("/api/upload-file", {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await res.json();
+
+    alert(JSON.stringify(data));
+}
+</script>
+
+</body>
+</html>
