@@ -7,8 +7,26 @@ export const config = {
   },
 };
 
-export default async function handler(req, res) {
+const parseForm = (req) => new Promise((resolve, reject) => {
+  const form = formidable({ multiples: true, keepExtensions: true });
+  form.parse(req, (err, fields, files) => {
+    if (err) return reject(err);
+    resolve({ fields, files });
+  });
+});
 
+const sanitizePathSegment = (value) => String(value || '')
+  .trim()
+  .replace(/[\\/\\:?%\\*|"<>]/g, '_')
+  .replace(/\s+/g, ' ');
+
+const sanitizeFileName = (name) => String(name || 'file')
+  .trim()
+  .replace(/[:\\/\?%\*|"<>]/g, '_')
+  .replace(/\s+/g, ' ')
+  .slice(0, 200) || 'file';
+
+export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Only POST allowed" });
   }
@@ -17,15 +35,8 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Yandex Disk token is not configured" });
   }
 
-  const form = formidable({ multiples: true, keepExtensions: true });
-
-  form.parse(req, async (err, fields, files) => {
-
-    if (err) {
-      console.error('Form parse error:', err);
-      return res.status(500).json({ error: "Form error" });
-    }
-
+  try {
+    const { fields, files } = await parseForm(req);
     const telegramId = Array.isArray(fields.telegramId) ? fields.telegramId[0] : fields.telegramId;
     const fileInput = files.file;
     const fileList = Array.isArray(fileInput) ? fileInput : fileInput ? [fileInput] : [];
@@ -34,17 +45,18 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "No telegramId or files provided" });
     }
 
-    const folderPath = `app:/clients/${telegramId}`;
+    const safeTelegramId = sanitizePathSegment(telegramId);
+    const folderPath = `app:/clients/${safeTelegramId}`;
 
-    const createFolderRes = await fetch(
-      `https://cloud-api.yandex.net/v1/disk/resources?path=${encodeURIComponent(folderPath)}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `OAuth ${process.env.YANDEX_DISK_TOKEN}`,
-        },
-      }
-    );
+    const createFolderUrl = new URL('https://cloud-api.yandex.net/v1/disk/resources');
+    createFolderUrl.searchParams.set('path', folderPath);
+
+    const createFolderRes = await fetch(createFolderUrl.toString(), {
+      method: "PUT",
+      headers: {
+        Authorization: `OAuth ${process.env.YANDEX_DISK_TOKEN}`,
+      },
+    });
 
     if (![201, 409].includes(createFolderRes.status)) {
       const errorText = await createFolderRes.text();
@@ -55,17 +67,17 @@ export default async function handler(req, res) {
     const uploadedFiles = [];
 
     for (const file of fileList) {
-      const originalFilename = file.originalFilename || file.newFilename || 'file';
+      const originalFilename = sanitizeFileName(file.originalFilename || file.newFilename || 'file');
       const fileName = `${Date.now()}_${originalFilename}`;
+      const uploadUrl = new URL('https://cloud-api.yandex.net/v1/disk/resources/upload');
+      uploadUrl.searchParams.set('path', `${folderPath}/${fileName}`);
+      uploadUrl.searchParams.set('overwrite', 'true');
 
-      const uploadRes = await fetch(
-        `https://cloud-api.yandex.net/v1/disk/resources/upload?path=${encodeURIComponent(folderPath + "/" + fileName)}&overwrite=true`,
-        {
-          headers: {
-            Authorization: `OAuth ${process.env.YANDEX_DISK_TOKEN}`,
-          },
-        }
-      );
+      const uploadRes = await fetch(uploadUrl.toString(), {
+        headers: {
+          Authorization: `OAuth ${process.env.YANDEX_DISK_TOKEN}`,
+        },
+      });
 
       const uploadData = await uploadRes.json();
       if (!uploadData.href) {
@@ -76,6 +88,9 @@ export default async function handler(req, res) {
       const fileBuffer = fs.readFileSync(file.filepath);
       const putRes = await fetch(uploadData.href, {
         method: "PUT",
+        headers: {
+          'Content-Type': 'application/octet-stream',
+        },
         body: fileBuffer,
       });
 
@@ -97,6 +112,8 @@ export default async function handler(req, res) {
       success: true,
       uploadedFiles,
     });
-
-  });
+  } catch (error) {
+    console.error('Upload-file handler error:', error);
+    return res.status(500).json({ error: 'Upload handler failed', details: error.message });
+  }
 }
