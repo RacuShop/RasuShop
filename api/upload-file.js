@@ -120,7 +120,7 @@ const getDriveClient = async () => {
 const findOrCreateFolder = async (drive, folderName, parentFolderId) => {
   try {
     console.log('Checking if root folder exists:', parentFolderId);
-    // First check if parent folder exists
+    // For Shared Drives, we need to use different API calls
     const parentCheck = await drive.files.get({
       fileId: parentFolderId,
       fields: 'id,name,mimeType',
@@ -138,6 +138,7 @@ const findOrCreateFolder = async (drive, folderName, parentFolderId) => {
       pageSize: 1,
       supportsAllDrives: true,
       includeItemsFromAllDrives: true,
+      corpora: 'allDrives', // This allows searching across all drives including shared drives
     });
 
     if (response.data.files && response.data.files.length > 0) {
@@ -246,6 +247,7 @@ export default async function handler(req, res) {
           media,
           fields: 'id,name,mimeType,size,webViewLink',
           supportsAllDrives: true,
+          corpora: 'allDrives', // Allow uploading to shared drives
         });
 
         uploadedFiles.push({
