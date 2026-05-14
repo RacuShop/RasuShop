@@ -1,17 +1,37 @@
 import { google } from "googleapis";
 
 export default function handler(req, res) {
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
-  );
+  try {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI;
 
-  const url = oauth2Client.generateAuthUrl({
-    access_type: "offline",
-    prompt: "consent",
-    scope: ["https://www.googleapis.com/auth/drive"],
-  });
+    if (!clientId || !clientSecret || !redirectUri) {
+      return res.status(500).json({
+        error: "Missing env vars",
+        clientId: !!clientId,
+        clientSecret: !!clientSecret,
+        redirectUri: !!redirectUri,
+      });
+    }
 
-  res.redirect(url);
+    const oauth2Client = new google.auth.OAuth2(
+      clientId,
+      clientSecret,
+      redirectUri
+    );
+
+    const url = oauth2Client.generateAuthUrl({
+      access_type: "offline",
+      prompt: "consent",
+      scope: ["https://www.googleapis.com/auth/drive"],
+    });
+
+    return res.redirect(url);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({
+      error: e.message,
+    });
+  }
 }
