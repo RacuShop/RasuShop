@@ -333,7 +333,13 @@ function removeUploadedFile(fileId) {
         URL.revokeObjectURL(removed.previewUrl);
     }
     state.uploadedFiles = state.uploadedFiles.filter(file => file.id !== fileId);
-    renderCart();
+    
+    // Переотрисовываем в зависимости от текущего экрана
+    if (state.screen === 'cart') {
+        renderCart();
+    } else if (state.screen === 'account') {
+        renderAccount();
+    }
 }
 
 function clearUploadedFiles() {
@@ -341,6 +347,36 @@ function clearUploadedFiles() {
         if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
     });
     state.uploadedFiles = [];
+}
+
+// Проверяет, должна ли кнопка загрузки файлов отображаться
+// Возвращает true, если выполнены условия для загрузки файлов
+function shouldShowFileUploadButton() {
+    // Условия для отображения кнопки можно добавлять здесь в будущем
+    // Текущий случай: заказываем "Вывеска" или "Короб" И выбрали "Да" на вопрос о векторном файле
+    
+    const UPLOAD_CONDITIONS = [
+        {
+            // Условие 1: Вывеска или Короб с ответом "Да" на векторный файл
+            check: () => {
+                return state.cart.some(item => {
+                    if (item.title !== 'Вывеска' && item.title !== 'Короб') return false;
+                    
+                    const vectorAnswer = item.surveyAnswers?.find(ans =>
+                        ans.question === 'У вас есть исходник в векторном формате?'
+                    );
+                    
+                    return vectorAnswer?.answer === 'Да';
+                });
+            }
+        }
+        // Добавлять новые условия здесь в будущем:
+        // {
+        //     check: () => { /* условие 2 */ }
+        // }
+    ];
+    
+    return UPLOAD_CONDITIONS.some(condition => condition.check());
 }
 
 function renderUploadedFilesList(container) {
@@ -352,18 +388,19 @@ function renderUploadedFilesList(container) {
     }
 
     container.innerHTML = state.uploadedFiles.map(file => `
-        <div class="uploaded-file-item" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:10px;min-width:220px;max-width:280px;">
-            <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
-                ${file.previewUrl ? `<img src="${file.previewUrl}" alt="${file.name}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;" />` : `<div style="width:48px;height:48px;background:#f0f0f0;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#777;font-size:0.85rem;">Ф</div>`}
-                <div style="min-width:0;">
-                    <div style="font-size:0.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${file.name}</div>
-                    <div style="font-size:0.82rem;color:#666;">${formatFileSize(file.size)}</div>
-                </div>
+        <div class="uploaded-file-item" style="position:relative;display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:10px;width:120px;">
+            <div style="width:32px;height:32px;background:#f0f0f0;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#777;font-size:0.7rem;">📄</div>
+            <div style="min-width:0;flex:1;">
+                <div style="font-size:0.85rem;font-weight:600;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${file.name.length > 6 ? file.name.substring(0,6) + '...' : file.name}</div>
+                <div style="font-size:0.75rem;color:#666;font-weight:400;">${formatFileSize(file.size)}</div>
             </div>
-            <button type="button" class="remove-uploaded-file" data-id="${file.id}" style="border:none;background:transparent;color:#c00;font-size:1.2rem;cursor:pointer;">✕</button>
+            <button type="button" class="remove-uploaded-file" data-id="${file.id}" style="position:absolute;top:4px;right:4px;border:none;background:transparent;color:#000;font-size:0.8rem;cursor:pointer;">✕</button>
         </div>
     `).join('');
 }
+
+// Отображает загруженные файлы на странице профиля с горизонтальным скроллом
+
 
 const parseJsonOrText = async (response) => {
     const text = await response.text();
@@ -945,13 +982,17 @@ function renderCart() {
         contractContainer.id = 'cart-contract';
 
         const allSurveysCompleted = state.cart.every(item => isSurveyCompleteForCartItem(item));
+        const shouldShowUpload = shouldShowFileUploadButton();
+        
         const contract = document.createElement('div');
         contract.innerHTML = `
-            <div class="upload-files-section" style="border-top:1px solid rgba(0,0,0,.15); padding-top:16px; margin-top:16px;">
-                <button id="file-upload-button" class="primary-btn" style="padding:12px 16px; font-size:0.95rem;">Загрузить файлы</button>
-                <input type="file" id="file-upload-input" multiple style="display:none;" />
-                <div id="uploaded-files-list" class="uploaded-files-list" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:10px;"></div>
-            </div>
+            ${shouldShowUpload ? `
+                <div class="upload-files-section">
+                    <button id="file-upload-button" class="primary-btn" style="padding:12px 16px; font-size:0.95rem;">Загрузить файлы</button>
+                    <input type="file" id="file-upload-input" multiple style="display:none;" />
+                    <div id="uploaded-files-list" class="uploaded-files-list"></div>
+                </div>
+            ` : ''}
             <label style="display:flex;align-items:center;gap:8px;margin:16px 0 8px;">
                 <input type="checkbox" id="agree">
                 Я согласен с условиями
@@ -962,7 +1003,10 @@ function renderCart() {
         `;
         contractContainer.appendChild(contract);
         content.appendChild(createBlock(contractContainer));
-        renderUploadedFilesList(contract.querySelector('#uploaded-files-list'));
+        
+        if (shouldShowUpload) {
+            renderUploadedFilesList(contract.querySelector('#uploaded-files-list'));
+        }
 
         // Enable/disable pay button based on surveys and agreement
         const payBtn = contract.querySelector('#pay-button');
@@ -1095,6 +1139,25 @@ function renderAccount() {
     `;
     content.appendChild(createBlock(orderStatusBlock));
 
+    // File upload block for profile
+    const fileUploadBlock = document.createElement('div');
+    fileUploadBlock.className = 'profile-card';
+    fileUploadBlock.id = 'profile-file-upload-block';
+    fileUploadBlock.innerHTML = `
+        <div class="profile-card-title">
+            Отправить нам файл
+        </div>
+        <div class="profile-file-upload-content">
+            <button id="profile-file-upload-button" class="primary-btn" style="padding:12px 16px; font-size:0.95rem;">Загрузить файлы</button>
+            <input type="file" id="profile-file-upload-input" multiple style="display:none;" />
+            <div id="profile-uploaded-files-list" class="uploaded-files-list" style="flex:1;overflow-x:auto;display:flex;gap:10px;"></div>
+        </div>
+    `;
+    content.appendChild(createBlock(fileUploadBlock));
+    
+    // Render uploaded files for profile
+    renderUploadedFilesList(fileUploadBlock.querySelector('#profile-uploaded-files-list'));
+
     // Load order status
     loadOrderStatus();
 }
@@ -1221,12 +1284,27 @@ on(document, 'click', '#file-upload-button', e => {
     if (input) input.click();
 });
 
+on(document, 'click', '#profile-file-upload-button', e => {
+    e.preventDefault();
+    const input = document.getElementById('profile-file-upload-input');
+    if (input) input.click();
+});
+
 on(document, 'change', '#file-upload-input', e => {
     const input = e.target;
     if (input.files && input.files.length) {
         addUploadedFiles(input.files);
         input.value = '';
         renderCart();
+    }
+});
+
+on(document, 'change', '#profile-file-upload-input', e => {
+    const input = e.target;
+    if (input.files && input.files.length) {
+        addUploadedFiles(input.files);
+        input.value = '';
+        renderAccount();
     }
 });
 
