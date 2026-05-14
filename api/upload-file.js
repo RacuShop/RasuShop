@@ -29,6 +29,7 @@ const sanitizeFileName = (name) => String(name || 'file')
   .slice(0, 200) || 'file';
 
 const loadServiceAccountCredentials = () => {
+  // Check for GOOGLE_SERVICE_ACCOUNT_KEY first
   if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
     try {
       console.log('Loading credentials from GOOGLE_SERVICE_ACCOUNT_KEY...');
@@ -46,6 +47,27 @@ const loadServiceAccountCredentials = () => {
     } catch (error) {
       console.error('Error parsing GOOGLE_SERVICE_ACCOUNT_KEY:', error.message);
       throw new Error(`Invalid GOOGLE_SERVICE_ACCOUNT_KEY JSON: ${error.message}`);
+    }
+  }
+
+  // Check for RasuDrive as alternative name
+  if (process.env.RasuDrive) {
+    try {
+      console.log('Loading credentials from RasuDrive...');
+      const raw = process.env.RasuDrive.trim();
+      const parsed = JSON.parse(raw);
+      console.log('Credentials parsed successfully from RasuDrive, client_email:', parsed.client_email);
+
+      if (parsed.private_key) {
+        parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+        console.log('Private key processed from RasuDrive');
+      } else {
+        throw new Error('No private_key found in RasuDrive credentials');
+      }
+      return parsed;
+    } catch (error) {
+      console.error('Error parsing RasuDrive:', error.message);
+      throw new Error(`Invalid RasuDrive JSON: ${error.message}`);
     }
   }
 
@@ -80,7 +102,7 @@ const loadServiceAccountCredentials = () => {
 const getDriveClient = async () => {
   const credentials = loadServiceAccountCredentials();
   if (!credentials) {
-    throw new Error('Google service account credentials not found. Set GOOGLE_SERVICE_ACCOUNT_KEY, GOOGLE_APPLICATION_CREDENTIALS, or place the JSON in api/');
+    throw new Error('Google service account credentials not found. Set GOOGLE_SERVICE_ACCOUNT_KEY or RasuDrive environment variable with the service account JSON key');
   }
 
   const auth = new google.auth.GoogleAuth({
@@ -139,6 +161,12 @@ const findOrCreateFolder = async (drive, folderName, parentFolderId) => {
 };
 
 export default async function handler(req, res) {
+  console.log('Environment variables check:');
+  console.log('GOOGLE_SERVICE_ACCOUNT_KEY exists:', !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+  console.log('RasuDrive exists:', !!process.env.RasuDrive);
+  console.log('GOOGLE_DRIVE_ROOT_FOLDER_ID exists:', !!process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID);
+  console.log('GOOGLE_DRIVE_ROOT_FOLDER_ID value:', process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID);
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Only POST allowed' });
   }
