@@ -73,37 +73,17 @@ export default async function handler(req, res) {
       uploadUrl.searchParams.set('path', `${folderPath}/${fileName}`);
       uploadUrl.searchParams.set('overwrite', 'true');
 
-const uploadRes = await fetch(uploadUrl.toString(), {
-  headers: {
-    Authorization: `OAuth ${process.env.YANDEX_DISK_TOKEN}`,
-  },
-});
+      const uploadRes = await fetch(uploadUrl.toString(), {
+        headers: {
+          Authorization: `OAuth ${process.env.YANDEX_DISK_TOKEN}`,
+        },
+      });
 
-if (!uploadRes.ok) {
-  const text = await uploadRes.text();
-
-  console.error(
-    'Yandex upload URL error:',
-    uploadRes.status,
-    text
-  );
-
-  return res.status(500).json({
-    error: 'Failed to get upload URL',
-    details: text
-  });
-}
-
-const uploadData = await uploadRes.json();
-
-if (!uploadData.href) {
-  console.error(uploadData);
-
-  return res.status(500).json({
-    error: 'No upload href returned',
-    details: uploadData
-  });
-}
+      const uploadData = await uploadRes.json();
+      if (!uploadData.href) {
+        console.error('Upload URL error:', uploadData);
+        return res.status(500).json({ error: "Upload URL error", details: uploadData });
+      }
 
       const fileBuffer = fs.readFileSync(file.filepath);
       const putRes = await fetch(uploadData.href, {
