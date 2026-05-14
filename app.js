@@ -365,6 +365,16 @@ function renderUploadedFilesList(container) {
     `).join('');
 }
 
+const parseJsonOrText = async (response) => {
+    const text = await response.text();
+    if (!text) return null;
+    try {
+        return JSON.parse(text);
+    } catch {
+        return { __rawText: text };
+    }
+};
+
 async function uploadFilesToDisk(telegramId) {
     if (!telegramId) throw new Error('Telegram ID is required for file upload');
     if (!state.uploadedFiles.length) return { uploadedFiles: [] };
@@ -378,9 +388,10 @@ async function uploadFilesToDisk(telegramId) {
         body: formData,
     });
 
-    const result = await response.json();
+    const result = await parseJsonOrText(response);
     if (!response.ok) {
-        throw new Error(result.error || 'Не удалось загрузить файлы на диск');
+        const message = result?.error || result?.__rawText || 'Не удалось загрузить файлы на диск';
+        throw new Error(message);
     }
     return result;
 }
@@ -1306,13 +1317,19 @@ on(document, 'click', '#pay-button', async (e) => {
             }),
         });
 
-        const result = await response.json();
+        let result;
+        try {
+            result = await response.json();
+        } catch (parseError) {
+            const text = await response.text();
+            result = { __rawText: text };
+        }
 
         console.log('API response:', result);
 
         if (!response.ok) {
             // Build detailed error message
-            let errorMsg = result.error || 'Failed to create order';
+            let errorMsg = result.error || result.__rawText || 'Failed to create order';
             if (result.details) {
                 if (typeof result.details === 'object') {
                     errorMsg += ` – ${JSON.stringify(result.details).substring(0, 100)}`;
