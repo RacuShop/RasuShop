@@ -8,6 +8,6 @@
   },
   "dependencies": {
     "formidable": "^3.5.1",
-    "ya-disk": "^1.0.2"
+    "googleapis": "^118.0.0"
   }
 }

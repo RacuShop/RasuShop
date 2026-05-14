@@ -1,6 +1,7 @@
 import formidable from "formidable";
 import fs from "fs";
-import * as yaDisk from 'ya-disk';
+import path from "path";
+import { google } from "googleapis";
 
 export const config = {
   api: {
@@ -27,14 +28,96 @@ const sanitizeFileName = (name) => String(name || 'file')
   .replace(/\s+/g, ' ')
   .slice(0, 200) || 'file';
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Only POST allowed" });
+const loadServiceAccountCredentials = () => {
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
+    try {
+      const raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY.trim();
+      const parsed = JSON.parse(raw);
+      if (parsed.private_key) {
+        parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+      }
+      return parsed;
+    } catch (error) {
+      throw new Error(`Invalid GOOGLE_SERVICE_ACCOUNT_KEY JSON: ${error.message}`);
+    }
   }
 
-  const token = process.env.YANDEX_DISK_TOKEN;
-  if (!token) {
-    return res.status(500).json({ error: "Yandex Disk token is not configured" });
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    const credentialPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    if (fs.existsSync(credentialPath)) {
+      const raw = fs.readFileSync(credentialPath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (parsed.private_key) {
+        parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+      }
+      return parsed;
+    }
+  }
+
+  const localFilePath = path.join(process.cwd(), 'api', 'rasu-496307-9d9bfcb2ad9a.json');
+  if (fs.existsSync(localFilePath)) {
+    const raw = fs.readFileSync(localFilePath, 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (parsed.private_key) {
+      parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+    }
+    return parsed;
+  }
+
+  return null;
+};
+
+const getDriveClient = async () => {
+  const credentials = loadServiceAccountCredentials();
+  if (!credentials) {
+    throw new Error('Google service account credentials not found. Set GOOGLE_SERVICE_ACCOUNT_KEY, GOOGLE_APPLICATION_CREDENTIALS, or place the JSON in api/');
+  }
+
+  const auth = new google.auth.GoogleAuth({
+    credentials,
+    scopes: ['https://www.googleapis.com/auth/drive'],
+  });
+
+  return google.drive({ version: 'v3', auth });
+};
+
+const findOrCreateFolder = async (drive, folderName, parentFolderId) => {
+  const escapedName = folderName.replace(/'/g, "\\'");
+  const query = `name='${escapedName}' and mimeType='application/vnd.google-apps.folder' and '${parentFolderId}' in parents and trashed=false`;
+  const response = await drive.files.list({
+    q: query,
+    fields: 'files(id, name)',
+    spaces: 'drive',
+    pageSize: 1,
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
+  });
+
+  if (response.data.files && response.data.files.length > 0) {
+    return response.data.files[0].id;
+  }
+
+  const created = await drive.files.create({
+    requestBody: {
+      name: folderName,
+      mimeType: 'application/vnd.google-apps.folder',
+      parents: [parentFolderId],
+    },
+    fields: 'id',
+    supportsAllDrives: true,
+  });
+
+  return created.data.id;
+};
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Only POST allowed' });
+  }
+
+  const rootFolderId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
+  if (!rootFolderId) {
+    return res.status(500).json({ error: 'Google Drive root folder ID is not configured', details: 'Set GOOGLE_DRIVE_ROOT_FOLDER_ID' });
   }
 
   try {
@@ -44,77 +127,46 @@ export default async function handler(req, res) {
     const fileList = Array.isArray(fileInput) ? fileInput : fileInput ? [fileInput] : [];
 
     if (!telegramId || !fileList.length) {
-      return res.status(400).json({ error: "No telegramId or files provided" });
+      return res.status(400).json({ error: 'No telegramId or files provided' });
     }
 
     const safeTelegramId = sanitizePathSegment(telegramId);
-    const folderPath = `app:/clients/${safeTelegramId}`;
-
-    // Create folder if needed
-    try {
-      await yaDisk.resources.create(token, folderPath);
-    } catch (error) {
-      const message = error?.message?.toString() || '';
-      if (!message.includes('already exists') && !message.includes('уже существует')) {
-        console.error('Yandex Disk folder creation failed:', error);
-        return res.status(500).json({ error: "Failed to create folder on Yandex Disk", details: message });
-      }
-    }
+    const drive = await getDriveClient();
+    const clientFolderId = await findOrCreateFolder(drive, safeTelegramId, rootFolderId);
 
     const uploadedFiles = [];
 
     for (const file of fileList) {
       const originalFilename = sanitizeFileName(file.originalFilename || file.newFilename || 'file');
       const fileName = `${Date.now()}_${originalFilename}`;
-      const fullPath = `${folderPath}/${fileName}`;
+      const media = {
+        mimeType: file.mimetype || 'application/octet-stream',
+        body: fs.createReadStream(file.filepath),
+      };
 
-      let uploadLink;
-      try {
-        uploadLink = await yaDisk.upload.link(token, fullPath, true);
-      } catch (error) {
-        console.error('Yandex Disk upload link failed:', error);
-        return res.status(500).json({ error: "Failed to get upload URL", details: error?.message || error });
-      }
-
-      if (!uploadLink?.href) {
-        console.error('Yandex Disk upload link missing href:', uploadLink);
-        return res.status(500).json({ error: "Upload URL missing", details: uploadLink });
-      }
-
-      try {
-        const stream = fs.createReadStream(file.filepath);
-        const putRes = await fetch(uploadLink.href, {
-          method: uploadLink.method || 'PUT',
-          headers: {
-            'Content-Type': 'application/octet-stream',
-          },
-          body: stream,
-        });
-
-        if (!putRes.ok) {
-          const errorText = await putRes.text();
-          console.error('Yandex Disk file upload failed:', putRes.status, errorText);
-          return res.status(500).json({ error: "File upload failed", details: errorText });
-        }
-      } catch (error) {
-        console.error('Yandex Disk file upload failed:', error);
-        return res.status(500).json({ error: "File upload failed", details: error?.message || error });
-      }
+      const createdFile = await drive.files.create({
+        requestBody: {
+          name: fileName,
+          parents: [clientFolderId],
+        },
+        media,
+        fields: 'id,name,mimeType,size,webViewLink',
+        supportsAllDrives: true,
+      });
 
       uploadedFiles.push({
         originalFilename,
         fileName,
         size: file.size,
-        path: fullPath,
+        path: `https://drive.google.com/drive/folders/${clientFolderId}`,
+        id: createdFile.data.id,
+        webViewLink: createdFile.data.webViewLink,
       });
     }
 
-    return res.status(200).json({
-      success: true,
-      uploadedFiles,
-    });
+    return res.status(200).json({ success: true, uploadedFiles });
   } catch (error) {
-    console.error('Upload-file handler error:', error);
-    return res.status(500).json({ error: 'Upload handler failed', details: error.message });
+    console.error('Google Drive upload handler error:', error);
+    return res.status(500).json({ error: 'Upload handler failed', details: error?.message || error });
   }
 }
