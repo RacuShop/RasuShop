@@ -1,0 +1,20 @@
+[33mcommit dde094849446395062fe120b013239f2571b8500[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: Tiltqq <vip.football0.2@mail.ru>
+Date:   Mon Mar 2 22:53:57 2026 +0300
+
+    update mini app
+
+[1mdiff --git a/styles.css b/styles.css[m
+[1mindex 7cc9187..2e00fe4 100644[m
+[1m--- a/styles.css[m
+[1m+++ b/styles.css[m
+[36m@@ -78,7 +78,7 @@[m [mbody {[m
+     gap: var(--space-sm);[m
+     padding: var(--space-md);[m
+     overflow-x: auto;[m
+[31m-    background: white;[m
+[32m+[m[32m    background: rgb(255, 0, 0);[m[41m
+[m
+     position: sticky;[m
+     top: var(--margin-top);[m
+     z-index: 800;[m
