@@ -1,6 +1,6 @@
 import formidable from "formidable";
 import fs from "fs";
-import yaDisk from 'ya-disk';
+import * as yaDisk from 'ya-disk';
 
 export const config = {
   api: {
@@ -50,13 +50,14 @@ export default async function handler(req, res) {
     const safeTelegramId = sanitizePathSegment(telegramId);
     const folderPath = `app:/clients/${safeTelegramId}`;
 
-    // Create folder
+    // Create folder if needed
     try {
-      await yaDisk.mkdir(token, folderPath);
+      await yaDisk.resources.create(token, folderPath);
     } catch (error) {
-      if (!error.message.includes('уже существует')) { // Folder already exists is ok
+      const message = error?.message?.toString() || '';
+      if (!message.includes('already exists') && !message.includes('уже существует')) {
         console.error('Yandex Disk folder creation failed:', error);
-        return res.status(500).json({ error: "Failed to create folder on Yandex Disk", details: error.message });
+        return res.status(500).json({ error: "Failed to create folder on Yandex Disk", details: message });
       }
     }
 
@@ -67,11 +68,37 @@ export default async function handler(req, res) {
       const fileName = `${Date.now()}_${originalFilename}`;
       const fullPath = `${folderPath}/${fileName}`;
 
+      let uploadLink;
       try {
-        await yaDisk.uploadFile(token, fullPath, fs.createReadStream(file.filepath));
+        uploadLink = await yaDisk.upload.link(token, fullPath, true);
+      } catch (error) {
+        console.error('Yandex Disk upload link failed:', error);
+        return res.status(500).json({ error: "Failed to get upload URL", details: error?.message || error });
+      }
+
+      if (!uploadLink?.href) {
+        console.error('Yandex Disk upload link missing href:', uploadLink);
+        return res.status(500).json({ error: "Upload URL missing", details: uploadLink });
+      }
+
+      try {
+        const stream = fs.createReadStream(file.filepath);
+        const putRes = await fetch(uploadLink.href, {
+          method: uploadLink.method || 'PUT',
+          headers: {
+            'Content-Type': 'application/octet-stream',
+          },
+          body: stream,
+        });
+
+        if (!putRes.ok) {
+          const errorText = await putRes.text();
+          console.error('Yandex Disk file upload failed:', putRes.status, errorText);
+          return res.status(500).json({ error: "File upload failed", details: errorText });
+        }
       } catch (error) {
         console.error('Yandex Disk file upload failed:', error);
-        return res.status(500).json({ error: "File upload failed", details: error.message });
+        return res.status(500).json({ error: "File upload failed", details: error?.message || error });
       }
 
       uploadedFiles.push({
