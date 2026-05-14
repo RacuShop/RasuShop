@@ -31,19 +31,27 @@ const sanitizeFileName = (name) => String(name || 'file')
 const loadServiceAccountCredentials = () => {
   if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
     try {
+      console.log('Loading credentials from GOOGLE_SERVICE_ACCOUNT_KEY...');
       const raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY.trim();
       const parsed = JSON.parse(raw);
+      console.log('Credentials parsed successfully, client_email:', parsed.client_email);
+
       if (parsed.private_key) {
         parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+        console.log('Private key processed');
+      } else {
+        throw new Error('No private_key found in credentials');
       }
       return parsed;
     } catch (error) {
+      console.error('Error parsing GOOGLE_SERVICE_ACCOUNT_KEY:', error.message);
       throw new Error(`Invalid GOOGLE_SERVICE_ACCOUNT_KEY JSON: ${error.message}`);
     }
   }
 
   if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     const credentialPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    console.log('Loading credentials from GOOGLE_APPLICATION_CREDENTIALS:', credentialPath);
     if (fs.existsSync(credentialPath)) {
       const raw = fs.readFileSync(credentialPath, 'utf-8');
       const parsed = JSON.parse(raw);
@@ -55,6 +63,7 @@ const loadServiceAccountCredentials = () => {
   }
 
   const localFilePath = path.join(process.cwd(), 'api', 'rasu-496307-9d9bfcb2ad9a.json');
+  console.log('Checking local file:', localFilePath);
   if (fs.existsSync(localFilePath)) {
     const raw = fs.readFileSync(localFilePath, 'utf-8');
     const parsed = JSON.parse(raw);
@@ -64,6 +73,7 @@ const loadServiceAccountCredentials = () => {
     return parsed;
   }
 
+  console.error('No credentials found in any location');
   return null;
 };
 
@@ -82,32 +92,50 @@ const getDriveClient = async () => {
 };
 
 const findOrCreateFolder = async (drive, folderName, parentFolderId) => {
-  const escapedName = folderName.replace(/'/g, "\\'");
-  const query = `name='${escapedName}' and mimeType='application/vnd.google-apps.folder' and '${parentFolderId}' in parents and trashed=false`;
-  const response = await drive.files.list({
-    q: query,
-    fields: 'files(id, name)',
-    spaces: 'drive',
-    pageSize: 1,
-    supportsAllDrives: true,
-    includeItemsFromAllDrives: true,
-  });
+  try {
+    console.log('Checking if root folder exists:', parentFolderId);
+    // First check if parent folder exists
+    const parentCheck = await drive.files.get({
+      fileId: parentFolderId,
+      fields: 'id,name,mimeType',
+      supportsAllDrives: true,
+    });
+    console.log('Root folder exists:', parentCheck.data.name);
 
-  if (response.data.files && response.data.files.length > 0) {
-    return response.data.files[0].id;
+    const escapedName = folderName.replace(/'/g, "\\'");
+    const query = `name='${escapedName}' and mimeType='application/vnd.google-apps.folder' and '${parentFolderId}' in parents and trashed=false`;
+    console.log('Searching for existing client folder...');
+    const response = await drive.files.list({
+      q: query,
+      fields: 'files(id, name)',
+      spaces: 'drive',
+      pageSize: 1,
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
+    });
+
+    if (response.data.files && response.data.files.length > 0) {
+      console.log('Found existing folder:', response.data.files[0].id);
+      return response.data.files[0].id;
+    }
+
+    console.log('Creating new client folder...');
+    const created = await drive.files.create({
+      requestBody: {
+        name: folderName,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: [parentFolderId],
+      },
+      fields: 'id',
+      supportsAllDrives: true,
+    });
+
+    console.log('Created new folder:', created.data.id);
+    return created.data.id;
+  } catch (error) {
+    console.error('Error in findOrCreateFolder:', error.message);
+    throw new Error(`Failed to create/find folder: ${error.message}`);
   }
-
-  const created = await drive.files.create({
-    requestBody: {
-      name: folderName,
-      mimeType: 'application/vnd.google-apps.folder',
-      parents: [parentFolderId],
-    },
-    fields: 'id',
-    supportsAllDrives: true,
-  });
-
-  return created.data.id;
 };
 
 export default async function handler(req, res) {
@@ -121,22 +149,40 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('Starting upload process...');
     const { fields, files } = await parseForm(req);
+    console.log('Form parsed successfully');
+
     const telegramId = Array.isArray(fields.telegramId) ? fields.telegramId[0] : fields.telegramId;
     const fileInput = files.file;
     const fileList = Array.isArray(fileInput) ? fileInput : fileInput ? [fileInput] : [];
+
+    console.log('telegramId:', telegramId);
+    console.log('fileList length:', fileList.length);
 
     if (!telegramId || !fileList.length) {
       return res.status(400).json({ error: 'No telegramId or files provided' });
     }
 
     const safeTelegramId = sanitizePathSegment(telegramId);
+    console.log('Getting drive client...');
     const drive = await getDriveClient();
+    console.log('Drive client created successfully');
+
+    console.log('Creating/finding client folder...');
     const clientFolderId = await findOrCreateFolder(drive, safeTelegramId, rootFolderId);
+    console.log('Client folder ID:', clientFolderId);
 
     const uploadedFiles = [];
 
     for (const file of fileList) {
+      console.log('Processing file:', file.originalFilename, 'Path:', file.filepath);
+
+      // Check if file exists
+      if (!fs.existsSync(file.filepath)) {
+        throw new Error(`Uploaded file not found: ${file.filepath}`);
+      }
+
       const originalFilename = sanitizeFileName(file.originalFilename || file.newFilename || 'file');
       const fileName = `${Date.now()}_${originalFilename}`;
       const media = {
@@ -144,29 +190,38 @@ export default async function handler(req, res) {
         body: fs.createReadStream(file.filepath),
       };
 
-      const createdFile = await drive.files.create({
-        requestBody: {
-          name: fileName,
-          parents: [clientFolderId],
-        },
-        media,
-        fields: 'id,name,mimeType,size,webViewLink',
-        supportsAllDrives: true,
-      });
+      console.log('Uploading file to Google Drive...');
+      try {
+        const createdFile = await drive.files.create({
+          requestBody: {
+            name: fileName,
+            parents: [clientFolderId],
+          },
+          media,
+          fields: 'id,name,mimeType,size,webViewLink',
+          supportsAllDrives: true,
+        });
 
-      uploadedFiles.push({
-        originalFilename,
-        fileName,
-        size: file.size,
-        path: `https://drive.google.com/drive/folders/${clientFolderId}`,
-        id: createdFile.data.id,
-        webViewLink: createdFile.data.webViewLink,
-      });
+        uploadedFiles.push({
+          originalFilename,
+          fileName,
+          size: file.size,
+          path: `https://drive.google.com/drive/folders/${clientFolderId}`,
+          id: createdFile.data.id,
+          webViewLink: createdFile.data.webViewLink,
+        });
+        console.log('File uploaded successfully:', createdFile.data.id);
+      } catch (uploadError) {
+        console.error('Error uploading file:', uploadError.message);
+        throw new Error(`Failed to upload file ${originalFilename}: ${uploadError.message}`);
+      }
     }
 
     return res.status(200).json({ success: true, uploadedFiles });
   } catch (error) {
     console.error('Google Drive upload handler error:', error);
+    console.error('Error details:', error?.message);
+    console.error('Error stack:', error?.stack);
     return res.status(500).json({ error: 'Upload handler failed', details: error?.message || error });
   }
 }
