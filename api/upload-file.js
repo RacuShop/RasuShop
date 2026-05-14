@@ -14,7 +14,18 @@ const parseForm = (req) => new Promise((resolve, reject) => {
     resolve({ fields, files });
   });
 });
-
+const parseResponse = async (response) => {
+  const text = await response.text();
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      return { __parseError: error.message, __rawText: text };
+    }
+  }
+  return { __rawText: text };
+};
 const sanitizePathSegment = (value) => String(value || '')
   .trim()
   .replace(/[\\/\\:?%\\*|"<>]/g, '_')
@@ -55,6 +66,7 @@ export default async function handler(req, res) {
       method: "PUT",
       headers: {
         Authorization: `OAuth ${process.env.YANDEX_DISK_TOKEN}`,
+        Accept: 'application/json',
       },
     });
 
@@ -76,10 +88,17 @@ export default async function handler(req, res) {
       const uploadRes = await fetch(uploadUrl.toString(), {
         headers: {
           Authorization: `OAuth ${process.env.YANDEX_DISK_TOKEN}`,
+          Accept: 'application/json',
         },
       });
 
-      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok) {
+        const errorText = await uploadRes.text();
+        console.error('Yandex Disk upload URL request failed:', uploadRes.status, errorText);
+        return res.status(500).json({ error: "Upload URL request failed", status: uploadRes.status, details: errorText });
+      }
+
+      const uploadData = await parseResponse(uploadRes);
       if (!uploadData.href) {
         console.error('Upload URL error:', uploadData);
         return res.status(500).json({ error: "Upload URL error", details: uploadData });
