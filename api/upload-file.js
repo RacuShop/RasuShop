@@ -55,6 +55,9 @@ const loadServiceAccountCredentials = () => {
     try {
       console.log('Loading credentials from RasuDrive...');
       const raw = process.env.RasuDrive.trim();
+      console.log('Raw RasuDrive value length:', raw.length);
+      console.log('Raw RasuDrive starts with:', raw.substring(0, 50) + '...');
+
       const parsed = JSON.parse(raw);
       console.log('Credentials parsed successfully from RasuDrive, client_email:', parsed.client_email);
 
@@ -67,6 +70,7 @@ const loadServiceAccountCredentials = () => {
       return parsed;
     } catch (error) {
       console.error('Error parsing RasuDrive:', error.message);
+      console.error('Raw RasuDrive value (first 200 chars):', process.env.RasuDrive?.substring(0, 200));
       throw new Error(`Invalid RasuDrive JSON: ${error.message}`);
     }
   }
@@ -176,6 +180,20 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Google Drive root folder ID is not configured', details: 'Set GOOGLE_DRIVE_ROOT_FOLDER_ID' });
   }
 
+  // Extract folder ID from full URL if needed
+  let cleanRootFolderId = rootFolderId.trim();
+  if (cleanRootFolderId.includes('drive.google.com')) {
+    const match = cleanRootFolderId.match(/folders\/([a-zA-Z0-9_-]+)/);
+    if (match) {
+      cleanRootFolderId = match[1];
+      console.log('Extracted folder ID from URL:', cleanRootFolderId);
+    } else {
+      return res.status(500).json({ error: 'Invalid Google Drive folder URL format', details: 'GOOGLE_DRIVE_ROOT_FOLDER_ID should be just the folder ID or a valid Google Drive URL' });
+    }
+  }
+
+  console.log('Using root folder ID:', cleanRootFolderId);
+
   try {
     console.log('Starting upload process...');
     const { fields, files } = await parseForm(req);
@@ -198,7 +216,7 @@ export default async function handler(req, res) {
     console.log('Drive client created successfully');
 
     console.log('Creating/finding client folder...');
-    const clientFolderId = await findOrCreateFolder(drive, safeTelegramId, rootFolderId);
+    const clientFolderId = await findOrCreateFolder(drive, safeTelegramId, cleanRootFolderId);
     console.log('Client folder ID:', clientFolderId);
 
     const uploadedFiles = [];
