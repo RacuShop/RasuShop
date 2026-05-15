@@ -955,6 +955,99 @@ body {
     gap: 2px;
 }
 
+/* Стили для горизонтального скролла файлов */
+.uploaded-files-list {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 8px;
+    scroll-behavior: smooth;
+}
+
+/* Стилизация полосы прокрутки для webkit браузеров */
+.uploaded-files-list::-webkit-scrollbar {
+    height: 6px;
+}
+
+.uploaded-files-list::-webkit-scrollbar-track {
+    background: rgba(200, 200, 200, 0.1);
+    border-radius: 3px;
+}
+
+.uploaded-files-list::-webkit-scrollbar-thumb {
+    background: rgba(128, 128, 128, 0.3);
+    border-radius: 3px;
+}
+
+.uploaded-files-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(128, 128, 128, 0.5);
+}
+
+/* Адаптивный контейнер для загрузки файлов в профиле */
+.profile-file-upload-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+/* Группа кнопок загрузки - адаптивная сетка */
+.profile-button-group {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+
+/* Кнопка загрузки - растягивается по ширине */
+.profile-upload-btn {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+}
+
+/* Кнопка отправить - занимает доступное пространство */
+.profile-send-btn {
+    flex: 1;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    min-width: 0;
+}
+
+/* Кнопка добавить - квадратная, прилипает к правому краю */
+.profile-add-btn {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Список загруженных файлов с адаптивной шириной */
+.profile-files-list {
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+}
+
+/* Блок загрузки файлов в корзине */
+.upload-files-section {
+    border-top: 1px solid rgba(0, 0, 0, 0.15);
+    padding-top: 16px;
+    margin-top: 16px;
+    width: 100%;
+}
+
+.upload-files-section button {
+    width: 100%;
+    margin-bottom: 12px;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+}
+
 .file-name {
     font-size: 0.85rem;
     font-weight: 600;

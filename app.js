@@ -338,7 +338,13 @@ function removeUploadedFile(fileId) {
     if (state.screen === 'cart') {
         renderCart();
     } else if (state.screen === 'account') {
-        renderAccount();
+        const block = document.querySelector('#profile-file-upload-block');
+        if (block) {
+            updateProfileFileUploadButtonState(block);
+            const filesList = block.querySelector('#profile-uploaded-files-list');
+            renderUploadedFilesList(filesList);
+            setupHorizontalScrollWheel(filesList);
+        }
     }
 }
 
@@ -383,12 +389,12 @@ function renderUploadedFilesList(container) {
     if (!container) return;
 
     if (state.uploadedFiles.length === 0) {
-        container.innerHTML = `<div class="upload-hint" style="color:#666;font-size:0.95rem;">Вы можете загрузить файлы к заказу после выбора.</div>`;
+        container.innerHTML = '';
         return;
     }
 
     container.innerHTML = state.uploadedFiles.map(file => `
-        <div class="uploaded-file-item" style="position:relative;display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:10px;width:120px;">
+        <div class="uploaded-file-item" style="position:relative;display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:10px;width:120px;flex-shrink:0;">
             <div style="width:32px;height:32px;background:#f0f0f0;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#777;font-size:0.7rem;">📄</div>
             <div style="min-width:0;flex:1;">
                 <div style="font-size:0.85rem;font-weight:600;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${file.name.length > 6 ? file.name.substring(0,6) + '...' : file.name}</div>
@@ -399,9 +405,20 @@ function renderUploadedFilesList(container) {
     `).join('');
 }
 
-// Отображает загруженные файлы на странице профиля с горизонтальным скроллом
 
+// Поддержка горизонтального скролла колесом мыши в списке файлов
+function setupHorizontalScrollWheel(container) {
+    if (!container) return;
+    
+    container.addEventListener('wheel', (e) => {
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+            e.preventDefault();
+            container.scrollLeft += e.deltaY * 0.5;
+        }
+    }, { passive: false });
+}
 
+// Вспомогательная функция для парсинга JSON или текста из ответа
 const parseJsonOrText = async (response) => {
     const text = await response.text();
     if (!text) return null;
@@ -411,6 +428,93 @@ const parseJsonOrText = async (response) => {
         return { __rawText: text };
     }
 };
+
+// Обновляет состояние кнопок загрузки в профиле в зависимости от наличия файлов
+function updateProfileFileUploadButtonState(fileUploadBlock) {
+    const buttonGroup = fileUploadBlock.querySelector('#profile-button-group');
+    const hasFiles = state.uploadedFiles.length > 0;
+    
+    if (hasFiles) {
+        // Режим с двумя кнопками
+        buttonGroup.innerHTML = `
+            <button id="profile-file-send-button" class="primary-btn profile-send-btn">Отправить</button>
+            <button id="profile-file-add-button" class="primary-btn profile-add-btn">+</button>
+        `;
+        
+        const sendBtn = buttonGroup.querySelector('#profile-file-send-button');
+        const addBtn = buttonGroup.querySelector('#profile-file-add-button');
+        
+        sendBtn.addEventListener('click', () => {
+            uploadFilesToProfileGoogleDrive();
+        });
+        
+        addBtn.addEventListener('click', () => {
+            const input = document.getElementById('profile-file-upload-input');
+            if (input) input.click();
+        });
+    } else {
+        // Обычный режим с одной кнопкой
+        buttonGroup.innerHTML = `
+            <button id="profile-file-upload-button" class="primary-btn profile-upload-btn">Загрузить файлы</button>
+        `;
+        
+        const uploadBtn = buttonGroup.querySelector('#profile-file-upload-button');
+        uploadBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const input = document.getElementById('profile-file-upload-input');
+            if (input) input.click();
+        });
+    }
+}
+
+// Отправляет файлы на Google Drive пользователя
+async function uploadFilesToProfileGoogleDrive() {
+    const tg = window.Telegram?.WebApp;
+    const user = tg?.initDataUnsafe?.user;
+    
+    if (!user) {
+        alert('Не удалось получить данные пользователя');
+        return;
+    }
+    
+    if (state.uploadedFiles.length === 0) {
+        alert('Нет файлов для отправки');
+        return;
+    }
+    
+    try {
+        const telegramId = user.id;
+        const formData = new FormData();
+        formData.append('telegramId', telegramId);
+        
+        state.uploadedFiles.forEach(file => {
+            formData.append('file', file.fileObj);
+        });
+        
+        // Отправляем на существующий endpoint
+        const response = await fetch('/api/upload-file', {
+            method: 'POST',
+            body: formData,
+        });
+        
+        const result = await parseJsonOrText(response);
+        
+        if (!response.ok) {
+            const message = result?.error || result?.__rawText || 'Не удалось загрузить файлы на диск';
+            throw new Error(message);
+        }
+        
+        alert('Файлы успешно отправлены в вашу папку на Google Drive!');
+        
+        // Очищаем загруженные файлы и обновляем интерфейс
+        clearUploadedFiles();
+        renderAccount();
+        
+    } catch (error) {
+        console.error('Error uploading files to Google Drive:', error);
+        alert(`Ошибка при отправке файлов: ${error.message}`);
+    }
+}
 
 async function uploadFilesToDisk(telegramId) {
     if (!telegramId) throw new Error('Telegram ID is required for file upload');
@@ -987,10 +1091,10 @@ function renderCart() {
         const contract = document.createElement('div');
         contract.innerHTML = `
             ${shouldShowUpload ? `
-                <div class="upload-files-section">
-                    <button id="file-upload-button" class="primary-btn" style="padding:12px 16px; font-size:0.95rem;">Загрузить файлы</button>
+                <div class="upload-files-section" style="border-top:1px solid rgba(0,0,0,.15); padding-top:16px; margin-top:16px;">
+                    <button id="file-upload-button" class="primary-btn" style="padding:12px 16px; font-size:0.95rem; width:100%; margin-bottom:12px;">Загрузить файлы</button>
                     <input type="file" id="file-upload-input" multiple style="display:none;" />
-                    <div id="uploaded-files-list" class="uploaded-files-list"></div>
+                    <div id="uploaded-files-list" class="uploaded-files-list" style="display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding-bottom:8px;scroll-behavior:smooth;"></div>
                 </div>
             ` : ''}
             <label style="display:flex;align-items:center;gap:8px;margin:16px 0 8px;">
@@ -1005,7 +1109,10 @@ function renderCart() {
         content.appendChild(createBlock(contractContainer));
         
         if (shouldShowUpload) {
-            renderUploadedFilesList(contract.querySelector('#uploaded-files-list'));
+            const filesContainer = contract.querySelector('#uploaded-files-list');
+            renderUploadedFilesList(filesContainer);
+            // Добавляем поддержку скролла колесом мыши
+            setupHorizontalScrollWheel(filesContainer);
         }
 
         // Enable/disable pay button based on surveys and agreement
@@ -1148,15 +1255,21 @@ function renderAccount() {
             Отправить нам файл
         </div>
         <div class="profile-file-upload-content">
-            <button id="profile-file-upload-button" class="primary-btn" style="padding:12px 16px; font-size:0.95rem;">Загрузить файлы</button>
+            <div id="profile-button-group" class="profile-button-group">
+                <button id="profile-file-upload-button" class="primary-btn profile-upload-btn">Загрузить файлы</button>
+            </div>
             <input type="file" id="profile-file-upload-input" multiple style="display:none;" />
-            <div id="profile-uploaded-files-list" class="uploaded-files-list" style="flex:1;overflow-x:auto;display:flex;gap:10px;"></div>
+            <div id="profile-uploaded-files-list" class="uploaded-files-list profile-files-list"></div>
         </div>
     `;
     content.appendChild(createBlock(fileUploadBlock));
     
     // Render uploaded files for profile
-    renderUploadedFilesList(fileUploadBlock.querySelector('#profile-uploaded-files-list'));
+    const profileFilesList = fileUploadBlock.querySelector('#profile-uploaded-files-list');
+    renderUploadedFilesList(profileFilesList);
+    updateProfileFileUploadButtonState(fileUploadBlock);
+    // Добавляем поддержку скролла колесом мыши
+    setupHorizontalScrollWheel(profileFilesList);
 
     // Load order status
     loadOrderStatus();
@@ -1304,7 +1417,13 @@ on(document, 'change', '#profile-file-upload-input', e => {
     if (input.files && input.files.length) {
         addUploadedFiles(input.files);
         input.value = '';
-        renderAccount();
+        const block = document.querySelector('#profile-file-upload-block');
+        if (block) {
+            updateProfileFileUploadButtonState(block);
+            const filesList = block.querySelector('#profile-uploaded-files-list');
+            renderUploadedFilesList(filesList);
+            setupHorizontalScrollWheel(filesList);
+        }
     }
 });
 
