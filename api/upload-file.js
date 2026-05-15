@@ -6,8 +6,11 @@ import { google } from "googleapis";
 export const config = {
   api: {
     bodyParser: false,
+    responseLimit: false,
   },
 };
+
+export const maxDuration = 60;
 
 // ---------- FORM PARSER ----------
 const parseForm = (req) =>
