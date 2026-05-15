@@ -471,50 +471,98 @@ function updateProfileFileUploadButtonState(fileUploadBlock) {
 async function uploadFilesToProfileGoogleDrive() {
     const tg = window.Telegram?.WebApp;
     const user = tg?.initDataUnsafe?.user;
-    
+
     if (!user) {
         alert('Не удалось получить данные пользователя');
         return;
     }
-    
+
     if (state.uploadedFiles.length === 0) {
-        alert('Нет файлов для отправки');
+        alert('Нет файлов');
         return;
     }
-    
+
     try {
-        const telegramId = user.id;
-        const formData = new FormData();
-        formData.append('telegramId', telegramId);
-        
-        state.uploadedFiles.forEach(file => {
-            formData.append('file', file.fileObj);
+
+        const folderResponse = await fetch('/api/get-upload-folder', {
+            method:'POST',
+            headers:{
+                'Content-Type':'application/json'
+            },
+            body:JSON.stringify({
+                telegramId:user.id
+            })
         });
-        
-        // Отправляем на существующий endpoint
-        const response = await fetch('/api/upload-file', {
-            method: 'POST',
-            body: formData,
-        });
-        
-        const result = await parseJsonOrText(response);
-        
-        if (!response.ok) {
-            const message = result?.error || result?.__rawText || 'Не удалось загрузить файлы на диск';
-            throw new Error(message);
+
+        const folderData=await folderResponse.json();
+
+        if(!folderData.folderId){
+            throw new Error('Folder not created');
         }
-        
-        alert('Файлы успешно отправлены в вашу папку на Google Drive!');
-        
-        // Очищаем загруженные файлы и обновляем интерфейс
+
+        const folderId=folderData.folderId;
+
+        for(const file of state.uploadedFiles){
+
+            const metadata={
+                name:file.fileObj.name,
+                parents:[folderId]
+            };
+
+            const form=new FormData();
+
+            form.append(
+                'metadata',
+                new Blob(
+                    [JSON.stringify(metadata)],
+                    {type:'application/json'}
+                )
+            );
+
+            form.append(
+                'file',
+                file.fileObj
+            );
+
+            const upload=await fetch(
+                'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+                {
+                    method:'POST',
+                    headers:{
+                        Authorization:`Bearer ${window.googleAccessToken}`
+                    },
+                    body:form
+                }
+            );
+
+            if(!upload.ok){
+
+                const txt=await upload.text();
+
+                console.log(txt);
+
+                throw new Error(
+                    'Ошибка загрузки файла'
+                );
+            }
+        }
+
+        alert('Файлы загружены');
+
         clearUploadedFiles();
+
         renderAccount();
-        
-    } catch (error) {
-        console.error('Error uploading files to Google Drive:', error);
-        alert(`Ошибка при отправке файлов: ${error.message}`);
+
+    } catch(err){
+
+        console.error(err);
+
+        alert(
+            'Ошибка: '+err.message
+        );
     }
 }
+
 
 async function uploadFilesToDisk(telegramId) {
     if (!telegramId) throw new Error('Telegram ID is required for file upload');
