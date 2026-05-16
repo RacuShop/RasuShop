@@ -394,13 +394,13 @@ function renderUploadedFilesList(container) {
     }
 
     container.innerHTML = state.uploadedFiles.map(file => `
-        <div class="uploaded-file-item" style="position:relative;display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:10px;width:120px;flex-shrink:0;">
-            <div style="width:32px;height:32px;background:#f0f0f0;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#777;font-size:0.7rem;">📄</div>
-            <div style="min-width:0;flex:1;">
-                <div style="font-size:0.85rem;font-weight:600;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${file.name.length > 6 ? file.name.substring(0,6) + '...' : file.name}</div>
-                <div style="font-size:0.75rem;color:#666;font-weight:400;">${formatFileSize(file.size)}</div>
+        <div class="uploaded-file-item">
+            <div class="file-icon-placeholder">📄</div>
+            <div class="file-info">
+                <div class="file-name">${file.name.length > 10 ? file.name.substring(0, 10) + '...' : file.name}</div>
+                <div class="file-size">${formatFileSize(file.size)}</div>
             </div>
-            <button type="button" class="remove-uploaded-file" data-id="${file.id}" style="position:absolute;top:4px;right:4px;border:none;background:transparent;color:#000;font-size:0.8rem;cursor:pointer;">✕</button>
+            <button type="button" class="file-remove-btn remove-uploaded-file" data-id="${file.id}" aria-label="Удалить файл">✕</button>
         </div>
     `).join('');
 }
@@ -457,13 +457,6 @@ function updateProfileFileUploadButtonState(fileUploadBlock) {
         buttonGroup.innerHTML = `
             <button id="profile-file-upload-button" class="primary-btn profile-upload-btn">Загрузить файлы</button>
         `;
-        
-        const uploadBtn = buttonGroup.querySelector('#profile-file-upload-button');
-        uploadBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const input = document.getElementById('profile-file-upload-input');
-            if (input) input.click();
-        });
     }
 }
 
@@ -1163,8 +1156,8 @@ function renderCart() {
             ${shouldShowUpload ? `
                 <div class="upload-files-section" style="border-top:1px solid rgba(0,0,0,.15); padding-top:16px; margin-top:16px;">
                     <button id="file-upload-button" class="primary-btn" style="padding:12px 16px; font-size:0.95rem; width:100%; margin-bottom:12px;">Загрузить файлы</button>
-                    <input type="file" id="file-upload-input" multiple style="display:none;" />
-                    <div id="uploaded-files-list" class="uploaded-files-list" style="display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding-bottom:8px;scroll-behavior:smooth;"></div>
+                    <input type="file" id="file-upload-input" multiple class="hidden-file-input" />
+                    <div id="uploaded-files-list" class="uploaded-files-list"></div>
                 </div>
             ` : ''}
             <label style="display:flex;align-items:center;gap:8px;margin:16px 0 8px;">
@@ -1328,7 +1321,7 @@ function renderAccount() {
             <div id="profile-button-group" class="profile-button-group">
                 <button id="profile-file-upload-button" class="primary-btn profile-upload-btn">Загрузить файлы</button>
             </div>
-            <input type="file" id="profile-file-upload-input" multiple style="display:none;" />
+            <input type="file" id="profile-file-upload-input" multiple class="hidden-file-input" />
             <div id="profile-uploaded-files-list" class="uploaded-files-list profile-files-list"></div>
         </div>
     `;

@@ -253,6 +253,17 @@ body {
         font-size: 0.9rem;
     }
 }
+.hidden-file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    padding: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    left: -9999px;
+}
 .modal-close {
     position: absolute;
     top: var(--space-sm);
@@ -917,12 +928,40 @@ body {
     display: flex;
     align-items: flex-start;
     gap: 8px;
-    padding: 8px;
+    padding: 10px;
     background: #fff;
     border: 1px solid rgba(0,0,0,.08);
-    border-radius: 8px;
+    border-radius: 10px;
     width: 120px;
+    min-height: 72px;
     flex-shrink: 0;
+}
+
+.uploaded-file-item .file-remove-btn,
+.uploaded-file-item .remove-uploaded-file {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: rgba(255,255,255,0.75);
+    color: #202224;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 50%;
+    transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.uploaded-file-item .file-remove-btn:hover,
+.uploaded-file-item .remove-uploaded-file:hover {
+    transform: scale(1.1);
+    background: rgba(255,255,255,1);
+    color: #c00;
 }
 
 .file-icon-placeholder {
@@ -1088,7 +1127,7 @@ body {
 
 /* ────────────────────────────────────────────────────── */
 /* File Upload Styles - Profile View */
-/* ────────────────────────────────── */
+/* ────────────────────────────────────────────────────── */
 
 .profile-file-upload-content {
     display: flex;
