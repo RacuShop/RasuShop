@@ -386,7 +386,11 @@ body {
 
 /* или проще — универсально: */
 #cart-info {
-    margin-bottom: 36px;
+    margin-top: -24px !important;   /* ← Увеличенный отступ от хедера */
+    margin-bottom: 24px;
+    text-align: center;
+    font-weight: 600;
+    line-height: 1.5;
 }
 
 .content-block {
