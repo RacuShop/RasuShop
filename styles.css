@@ -455,28 +455,6 @@ body {
     object-fit: cover;
     border-radius: var(--radius-sm);
 }
-.remove-btn {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    width: 20px;
-    height: 20px;
-    border: none;
-    background: transparent;
-    color: #202224;
-    cursor: pointer;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    transition: all 0.2s ease;
-}
-
-.remove-btn:hover {
-    transform: scale(1.2);
-    color: #c00;
-}
 
 .remove-btn:hover {
     color: rgb(18, 18, 175);
@@ -935,36 +913,50 @@ body {
     display: flex;
     align-items: flex-start;
     gap: 8px;
-    padding: 10px;
+    padding: 28px 28px 10px 10px;
     background: #fff;
     border: 1px solid rgba(0,0,0,.08);
     border-radius: 10px;
-    width: 120px;
-    min-height: 72px;
+    width: 150px;
+    min-width: 150px;
+    min-height: 94px;
     flex-shrink: 0;
 }
 
+/* Единый стиль для кнопки удаления файла */
 .uploaded-file-item .remove-uploaded-file,
 .uploaded-file-item .file-remove-btn {
     position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 20px;
-    height: 20px;
+    top: 8px;
+    right: 8px;
+    width: 26px;
+    height: 26px;
     border: none;
     background: transparent;
-    color: #636363;
+    color: #636363 !important; /* явный цвет + !important чтобы переопределить Telegram */
     cursor: pointer;
     font-size: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0;
+    line-height: 1;
+    opacity: 1;
+    transition: color 0.2s ease, transform 0.2s ease;
+    z-index: 2;
+    box-sizing: border-box;
 }
 
 .uploaded-file-item .remove-uploaded-file:hover,
 .uploaded-file-item .file-remove-btn:hover {
-    color: #c00;
+    color: #c00 !important; /* красный при наведении */
+    transform: scale(1.05);
+}
+
+.uploaded-file-item .remove-uploaded-file svg,
+.uploaded-file-item .file-remove-btn svg {
+    width: 14px;
+    height: 14px;
 }
 
 .file-icon-placeholder {
@@ -1026,14 +1018,6 @@ body {
     background: rgba(128, 128, 128, 0.5);
 }
 
-/* Адаптивный контейнер для загрузки файлов в профиле */
-.profile-file-upload-content {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 100%;
-}
-
 /* Группа кнопок загрузки - адаптивная сетка */
 .profile-button-group {
     display: flex;
@@ -1092,11 +1076,56 @@ body {
     width: 100%;
 }
 
-.upload-files-section button {
+.upload-files-section > button#file-upload-button,
+.upload-files-section > button.primary-btn {
     width: 100%;
     margin-bottom: 12px;
     padding: 12px 16px;
     font-size: 0.95rem;
+}
+
+.upload-files-section .uploaded-files-list {
+    width: 100%;
+}
+
+.upload-files-section .uploaded-file-item {
+    width: 150px;
+    min-width: 150px;
+}
+
+.upload-files-section .uploaded-file-item .file-info {
+    min-width: 0;
+}
+
+.upload-files-section .uploaded-file-item {
+    position: relative;
+}
+
+.upload-files-section .uploaded-file-item .remove-uploaded-file,
+.upload-files-section .uploaded-file-item .file-remove-btn {
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    margin: 0 !important;
+    width: 26px !important;
+    height: 26px !important;
+    border: none !important;
+    background: transparent !important;
+    color: #636363 !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    line-height: 1 !important;
+    z-index: 3 !important;
+    box-sizing: border-box !important;
+}
+
+.upload-files-section .uploaded-file-item .remove-uploaded-file:hover,
+.upload-files-section .uploaded-file-item .file-remove-btn:hover {
+    color: #c00 !important;
+    transform: scale(1.05) !important;
 }
 
 .file-name {
@@ -1112,29 +1141,7 @@ body {
     font-size: 0.75rem;
     color: #636363;
     font-weight: 400;
-}
-
-.file-remove-btn {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    width: 20px;
-    height: 20px;
-    border: none;
-    background: transparent;
-    color: #202224;
-    cursor: pointer;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    transition: all 0.2s ease;
-}
-
-.file-remove-btn:hover {
-    transform: scale(1.2);
-    color: #c00;
+    white-space: nowrap;
 }
 
 /* ────────────────────────────────────────────────────── */
@@ -1143,9 +1150,10 @@ body {
 
 .profile-file-upload-content {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
     gap: 12px;
-    min-height: 52px;
+    width: 100%;
 }
 
 #profile-file-upload-button {
@@ -1181,22 +1189,12 @@ body {
     border-radius: 3px;
 }
 
-.profile-uploaded-file-item {
-    position: relative;
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    padding: 8px;
-    background: #fff;
-    border: 1px solid rgba(0,0,0,.08);
-    border-radius: 8px;
-    width: 120px;
-    flex-shrink: 0;
+/* Гарантированная защита от перезаписи цвета Telegram */
+.file-remove-btn svg path,
+.remove-uploaded-file svg path {
+    stroke: currentColor !important;
 }
 
-.profile-uploaded-files-list {
-    flex: 1;
-    min-width: 0;
-}
+
 
 

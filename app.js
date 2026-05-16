@@ -393,16 +393,28 @@ function renderUploadedFilesList(container) {
         return;
     }
 
-    container.innerHTML = state.uploadedFiles.map(file => `
+    container.innerHTML = state.uploadedFiles.map(file => {
+        const safeName = file.name
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+
+        return `
         <div class="uploaded-file-item">
             <div class="file-icon-placeholder">📄</div>
             <div class="file-info">
-                <div class="file-name">${file.name.length > 10 ? file.name.substring(0, 10) + '...' : file.name}</div>
+                <div class="file-name" title="${safeName}">${safeName}</div>
                 <div class="file-size">${formatFileSize(file.size)}</div>
             </div>
-            <button type="button" class="file-remove-btn remove-uploaded-file" data-id="${file.id}" aria-label="Удалить файл">✕</button>
+            <button type="button" class="file-remove-btn remove-uploaded-file" data-id="${file.id}" aria-label="Удалить файл">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+</button>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 
