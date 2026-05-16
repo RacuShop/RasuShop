@@ -64,14 +64,28 @@ export default async function handler(req,res){
      });
    }
 
-   const folderId=await findOrCreateFolder(
-      sanitizePathSegment(telegramId),
-      process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID
-   );
+   const folderId = await findOrCreateFolder(
+   sanitizePathSegment(telegramId),
+   process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID
+);
 
-   return res.status(200).json({
-      folderId
-   });
+// получаем access token
+const accessTokenObject =
+    await auth.getAccessToken();
+
+const accessToken =
+    accessTokenObject.token;
+
+if(!accessToken){
+    throw new Error(
+        'Failed to get access token'
+    );
+}
+
+return res.status(200).json({
+    folderId,
+    accessToken
+});
 
  } catch(err){
 

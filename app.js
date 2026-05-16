@@ -478,29 +478,51 @@ async function uploadFilesToProfileGoogleDrive() {
     }
 
     if (state.uploadedFiles.length === 0) {
-        alert('Нет файлов');
-        return;
+    alert('Нет файлов');
+    return;
+}
+
+try {
+
+// получаем папку + токен
+
+const folderResponse = await fetch(
+    '/api/get-upload-folder',
+    {
+        method:'POST',
+        headers:{
+            'Content-Type':'application/json'
+        },
+        body:JSON.stringify({
+            telegramId:user.id
+        })
     }
+);
 
-    try {
+const folderData = await folderResponse.json();
 
-        const folderResponse = await fetch('/api/get-upload-folder', {
-            method:'POST',
-            headers:{
-                'Content-Type':'application/json'
-            },
-            body:JSON.stringify({
-                telegramId:user.id
-            })
-        });
+console.log(
+    'folder response:',
+    folderData
+);
 
-        const folderData=await folderResponse.json();
+if(!folderData.folderId){
+    throw new Error(
+        'Folder not created'
+    );
+}
 
-        if(!folderData.folderId){
-            throw new Error('Folder not created');
-        }
+if(!folderData.accessToken){
+    throw new Error(
+        'Access token missing'
+    );
+}
 
-        const folderId=folderData.folderId;
+window.googleAccessToken =
+    folderData.accessToken;
+
+const folderId =
+    folderData.folderId;
 
         for(const file of state.uploadedFiles){
 
