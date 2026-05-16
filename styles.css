@@ -937,6 +937,29 @@ body {
     flex-shrink: 0;
 }
 
+.uploaded-file-item .remove-uploaded-file,
+.uploaded-file-item .file-remove-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: transparent;
+    color: #636363;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.uploaded-file-item .remove-uploaded-file:hover,
+.uploaded-file-item .file-remove-btn:hover {
+    color: #c00;
+}
+
 .file-icon-placeholder {
     width: 48px;
     height: 48px;
@@ -1011,17 +1034,26 @@ body {
     width: 100%;
 }
 
+.profile-button-group button {
+    min-height: 48px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
 /* Кнопка загрузки - растягивается по ширине */
 .profile-upload-btn {
     width: 100%;
-    padding: 12px 16px;
+    padding: 0 16px;
     font-size: 0.95rem;
 }
 
 /* Кнопка отправить - занимает доступное пространство */
 .profile-send-btn {
     flex: 1;
-    padding: 12px 16px;
+    padding: 0 16px;
     font-size: 0.95rem;
     min-width: 0;
 }
@@ -1033,7 +1065,7 @@ body {
     padding: 0;
     font-size: 0.95rem;
     flex-shrink: 0;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
 }
