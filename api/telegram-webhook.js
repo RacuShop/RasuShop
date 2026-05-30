@@ -215,7 +215,7 @@ async function handleMessage(message) {
 async function handleStartCommand(chatId) {
   await telegram('sendMessage', {
     chat_id: chatId,
-    text: 'Я бот поддержки </i>rasu</i>\n\nВыберите действие ниже:',
+    text: 'Я бот поддержки <i>rasu</i>\n\nВыберите действие ниже:',
     parse_mode: 'HTML',
     reply_markup: { inline_keyboard: buildStartButtons().inline_keyboard },
   });
@@ -238,7 +238,7 @@ async function handlePrivateChatMessage(message) {
   if (message.photo && message.photo.length > 1) {
     await telegram('sendMessage', {
       chat_id: message.chat.id,
-      text: '⚠️ Отправьте фото через каталог в приложении.\n\n</i>Обращение закрыто</i>',
+      text: '⚠️ Отправьте фото через каталог в приложении.\n\n<i>Обращение закрыто</i>',
       parse_mode: 'HTML',
     });
     return;
