@@ -47,6 +47,8 @@ module.exports = async (req, res) => {
     }
 };
 // СООБЩЕНИЕ ОТ КЛИЕНТА
+const GROUP_CHAT_ID = -1003781457668;
+
 module.exports = async (req, res) => {
     try {
         const body = await new Promise((resolve) => {
@@ -55,28 +57,50 @@ module.exports = async (req, res) => {
             req.on('end', () => resolve(JSON.parse(data || '{}')));
         });
 
-        const message = body.message;
+        const msg = body.message;
+        if (!msg) return res.status(200).send("ok");
 
-        if (!message) {
-            return res.status(200).send("ok");
-        }
+        const chatId = msg.chat.id;
+        const text = msg.text;
+        const isPrivate = msg.chat.type === "private";
 
-        const chatId = message.chat.id;
-        const text = message.text;
-        const username = message.from?.username;
-
-        // 🔥 ЛОГ ВСЕГО ЧТО ПРИХОДИТ
         console.log("========== NEW MESSAGE ==========");
         console.log("CHAT ID:", chatId);
-        console.log("USERNAME:", username);
+        console.log("TYPE:", msg.chat.type);
         console.log("TEXT:", text);
-        console.log("CHAT TYPE:", message.chat.type);
 
-        // 🧪 ответ чтобы Telegram не ругался
+        // 🟢 1. ЛИЧКА → В ГРУППУ
+        if (isPrivate && text) {
+
+            await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    chat_id: GROUP_CHAT_ID,
+                    text: `📩 Новое сообщение
+
+👤 @${msg.from.username || "no_username"}
+🆔 ${chatId}
+
+💬 ${text}`
+                })
+            });
+
+            // ответ пользователю
+            await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: "✅ Сообщение отправлено менеджерам"
+                })
+            });
+        }
+
         return res.status(200).send("ok");
 
     } catch (e) {
-        console.error("WEBHOOK ERROR:", e);
+        console.error(e);
         return res.status(200).send("error");
     }
 };
