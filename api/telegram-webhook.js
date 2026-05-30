@@ -190,13 +190,14 @@ async function handleCallbackQuery(callbackQuery) {
 // Private chat messages are treated as user support replies.
 // Group chat messages are treated as manager replies to ticket posts.
 async function handleMessage(message) {
-  if (!message.text) {
+  // Обрабатываем текст или фото
+  if (!message.text && !message.photo) {
     return;
   }
 
   const chatType = message.chat.type;
 
-  if (message.text.trim().startsWith('/start')) {
+  if (message.text?.trim().startsWith('/start')) {
     await handleStartCommand(message.chat.id);
     return;
   }
@@ -233,6 +234,16 @@ async function handlePrivateChatMessage(message) {
     return;
   }
 
+  // Проверяем лимит фото: максимум 1
+  if (message.photo && message.photo.length > 1) {
+    await telegram('sendMessage', {
+      chat_id: message.chat.id,
+      text: '⚠️ Можно прикреплять только одну фотографию.',
+      parse_mode: 'HTML',
+    });
+    return;
+  }
+
   const userChatId = message.chat.id;
 
   try {
@@ -245,7 +256,9 @@ async function handlePrivateChatMessage(message) {
   }
 
   const ticketText = buildTicketMessage(message, userChatId);
-  await telegram('sendMessage', {
+  
+  // Отправляем тикет в группу
+  const ticketMessage = await telegram('sendMessage', {
     chat_id: GROUP_CHAT_ID,
     text: ticketText,
     parse_mode: 'HTML',
@@ -264,6 +277,17 @@ async function handlePrivateChatMessage(message) {
       ],
     },
   });
+
+  // Если есть фото, отправляем его отдельно
+  if (message.photo) {
+    const photoFileId = message.photo[message.photo.length - 1].file_id;
+    await telegram('sendPhoto', {
+      chat_id: GROUP_CHAT_ID,
+      photo: photoFileId,
+      caption: '📸 Фото от клиента',
+      reply_to_message_id: ticketMessage.message_id,
+    });
+  }
 
   await telegram('sendMessage', {
     chat_id: userChatId,
@@ -285,6 +309,16 @@ async function handleGroupChatMessage(message) {
     return;
   }
 
+  // Проверяем лимит фото: максимум 3
+  if (message.photo && message.photo.length > 3) {
+    await telegram('sendMessage', {
+      chat_id: message.chat.id,
+      text: '⚠️ Можно прикреплять максимум 3 фотографии за раз.',
+      parse_mode: 'HTML',
+    });
+    return;
+  }
+
   const userChatId = meta.userChatId;
 
   const answerText = buildManagerReplyToUser(message);
@@ -293,6 +327,18 @@ async function handleGroupChatMessage(message) {
     text: answerText,
     parse_mode: 'HTML',
   });
+
+  // Если есть фото, отправляем каждое отдельно
+  if (message.photo) {
+    for (const photo of message.photo) {
+      const photoFileId = photo.file_id;
+      await telegram('sendPhoto', {
+        chat_id: userChatId,
+        photo: photoFileId,
+        caption: '📸 Фото от менеджера',
+      });
+    }
+  }
 
   const prompt = buildSupportPrompt();
   await telegram('sendMessage', {
