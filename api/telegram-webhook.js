@@ -153,6 +153,14 @@ module.exports = async (req, res) => {
       if (chat.type === 'private') {
         const userId = from.id;
 
+        // Handle /start: send greeting with Support button
+        if (text === '/start') {
+          const keyboard = { reply_markup: { inline_keyboard: [[{ text: '💬 Поддержка', callback_data: 'support' }]] } };
+          await sendMessage(userId, 'Добро пожаловать 👋\nНажмите кнопку, чтобы открыть поддержку.', keyboard);
+          res.status(200).end();
+          return;
+        }
+
         // If user is expected to send initial question
         if (collecting[userId]) {
           const ticketId = collecting[userId];
