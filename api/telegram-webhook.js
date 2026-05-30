@@ -1,58 +1,9 @@
-module.exports = async (req, res) => {
-    try {
-        const body = await new Promise((resolve) => {
-            let data = '';
-            req.on('data', chunk => data += chunk);
-            req.on('end', () => resolve(JSON.parse(data || '{}')));
-        });
+const GROUP_CHAT_ID = -1003781457668;
 
-        console.log("🔥 WEBHOOK HIT");
-        console.log(body);
-
-        const message = body.message;
-
-        if (!message) {
-            return res.status(200).send("ok");
-        }
-
-        const chatId = message.chat.id;
-        const text = message.text;
-        // КОМАНДА /START, НАЧАЛО ЧАТА
-        if (text === "/start") {
-            await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    chat_id: chatId,
-                    text: "Добро пожаловать в rasu!\nДля заказа услуги откройте каталог",
-                    reply_markup: {
-                        inline_keyboard: [[
-                            {
-                                text: "Каталог",
-                                web_app: {
-                                    url: "https://rasushop.vercel.app/"
-                                }
-                            }
-                        ]]
-                    }
-                })
-            });
-        }
-
-        return res.status(200).send("ok");
-
-    } catch (e) {
-        console.error(e);
-        return res.status(200).send("error");
-    }
-};
-        const GROUP_CHAT_ID = -1003781457668;
-
-// память (позже заменишь на DB)
+// временная память (потом база)
 const tickets = {};
 const activeReply = {};
 
-// генератор тикетов
 const genTicketId = () => Math.random().toString(36).substring(2, 10);
 
 module.exports = async (req, res) => {
@@ -68,34 +19,68 @@ module.exports = async (req, res) => {
         const msg = body.message;
         const cb = body.callback_query;
 
+        console.log("🔥 WEBHOOK HIT");
+
         // =========================
-        // CALLBACK КНОПКИ
+        // CALLBACKS (ВСЕ КНОПКИ)
         // =========================
         if (cb) {
             const data = cb.data;
-            const managerId = cb.from.id;
+            const chatId = cb.message.chat.id;
 
-            // 👉 REPLY
-            if (data.startsWith("reply_")) {
-                const ticketId = data.split("_")[1];
-                activeReply[managerId] = ticketId;
+            // ОБЯЗАТЕЛЬНО закрываем callback
+            await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    callback_query_id: cb.id
+                })
+            });
+
+            // =========================
+            // SUPPORT START
+            // =========================
+            if (data === "support") {
+                const ticketId = genTicketId();
+
+                tickets[ticketId] = {
+                    userChatId: chatId,
+                    status: "waiting"
+                };
 
                 await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        chat_id: managerId,
-                        text: `✍️ Введите ответ клиенту (ticket ${ticketId})`
+                        chat_id: chatId,
+                        text: "✍️ Опишите ваш вопрос одним сообщением"
                     })
                 });
             }
 
-            // 👉 IGNORE
+            // =========================
+            // MANAGER ACTIONS
+            // =========================
+
+            if (data.startsWith("reply_")) {
+                const ticketId = data.split("_")[1];
+                activeReply[cb.from.id] = ticketId;
+
+                await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        chat_id: cb.from.id,
+                        text: `✍️ Напишите ответ клиенту (ticket ${ticketId})`
+                    })
+                });
+            }
+
             if (data.startsWith("ignore_")) {
                 const ticketId = data.split("_")[1];
                 const ticket = tickets[ticketId];
 
-                if (ticket) {
+                if (ticket?.messageId) {
                     await fetch(`https://api.telegram.org/bot${botToken}/deleteMessage`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -107,7 +92,6 @@ module.exports = async (req, res) => {
                 }
             }
 
-            // 👉 CONTINUE
             if (data.startsWith("continue_")) {
                 const ticketId = data.split("_")[1];
                 if (tickets[ticketId]) {
@@ -115,13 +99,12 @@ module.exports = async (req, res) => {
                 }
             }
 
-            // 👉 CLOSE
             if (data.startsWith("close_")) {
                 const ticketId = data.split("_")[1];
                 const ticket = tickets[ticketId];
 
                 if (ticket) {
-                    tickets[ticketId].status = "closed";
+                    ticket.status = "closed";
 
                     await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
                         method: "POST",
@@ -138,7 +121,7 @@ module.exports = async (req, res) => {
         }
 
         // =========================
-        // СООБЩЕНИЕ
+        // MESSAGE FLOW
         // =========================
         if (!msg) return res.status(200).send("ok");
 
@@ -152,7 +135,7 @@ module.exports = async (req, res) => {
         console.log("TEXT:", text);
 
         // =========================
-        // 1. /start → КНОПКА ПОДДЕРЖКИ
+        // /START
         // =========================
         if (isPrivate && text === "/start") {
             await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -163,12 +146,7 @@ module.exports = async (req, res) => {
                     text: "Добро пожаловать 👋",
                     reply_markup: {
                         inline_keyboard: [
-                            [
-                                {
-                                    text: "💬 Поддержка",
-                                    callback_data: "support"
-                                }
-                            ]
+                            [{ text: "💬 Поддержка", callback_data: "support" }]
                         ]
                     }
                 })
@@ -178,34 +156,10 @@ module.exports = async (req, res) => {
         }
 
         // =========================
-        // callback SUPPORT
-        // =========================
-        if (cb?.data === "support") {
-            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    chat_id: cb.message.chat.id,
-                    text: "✍️ Опишите ваш вопрос одним сообщением"
-                })
-            });
-
-            // создаём тикет ожидания
-            const ticketId = genTicketId();
-            tickets[ticketId] = {
-                userChatId: cb.message.chat.id,
-                status: "waiting"
-            };
-
-            return res.status(200).send("ok");
-        }
-
-        // =========================
-        // 2. сообщение клиента → группа
+        // USER MESSAGE → GROUP
         // =========================
         if (isPrivate && text) {
 
-            // ищем активный тикет
             const ticketId = Object.keys(tickets).find(
                 t => tickets[t].userChatId === chatId && tickets[t].status !== "closed"
             );
@@ -220,7 +174,7 @@ module.exports = async (req, res) => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     chat_id: GROUP_CHAT_ID,
-                    text: `📩 Новый тикет #${ticketId}
+                    text: `📩 Тикет #${ticketId}
 
 👤 ${msg.from.username || "no_username"}
 🆔 ${chatId}
@@ -238,10 +192,8 @@ module.exports = async (req, res) => {
             });
 
             const result = await sent.json();
-
             ticket.messageId = result.result.message_id;
 
-            // ответ клиенту
             await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -255,9 +207,10 @@ module.exports = async (req, res) => {
         }
 
         // =========================
-        // 3. ответ менеджера → клиенту
+        // MANAGER REPLY → CLIENT
         // =========================
         if (!isPrivate && activeReply[msg.from.id]) {
+
             const ticketId = activeReply[msg.from.id];
             const ticket = tickets[ticketId];
 
