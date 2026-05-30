@@ -151,9 +151,19 @@ async function handleCallbackQuery(callbackQuery) {
     return;
   }
 
-  // Кнопка "Написать" под промптом — активирует force_reply на нужное сообщение
+  // Кнопка "Написать" — удаляем старый промпт, отправляем новый с force_reply
   if (data.startsWith('reply:')) {
-    const promptMessageId = Number(data.split(':')[1]);
+    const oldMessageId = callbackQuery.message?.message_id;
+
+    try {
+      await telegram('deleteMessage', {
+        chat_id: chatId,
+        message_id: oldMessageId,
+      });
+    } catch (error) {
+      console.warn('Unable to delete old prompt:', formatError(error));
+    }
+
     await telegram('sendMessage', {
       chat_id: chatId,
       text: SUPPORT_PROMPT_TEXT,
@@ -163,8 +173,8 @@ async function handleCallbackQuery(callbackQuery) {
         input_field_placeholder: 'Ваш вопрос',
         selective: true,
       },
-      reply_to_message_id: promptMessageId,
     });
+
     await answerCallbackQuery(callbackQuery.id, '');
     return;
   }
@@ -369,24 +379,16 @@ async function handleGroupChatMessage(message) {
     }
   }
 
-  // Отправляем промпт с force_reply
-  const prompt = buildSupportPrompt();
+  // Отправляем промпт с кнопкой "Написать"
   const promptMessage = await telegram('sendMessage', {
     chat_id: userChatId,
-    text: prompt.text,
-    parse_mode: prompt.parse_mode,
-    reply_markup: prompt.reply_markup,
-  });
-
-  // Отправляем кнопку "Написать" отдельным сообщением
-  await telegram('sendMessage', {
-    chat_id: userChatId,
-    text: '👇 Нажмите чтобы ответить',
+    text: SUPPORT_PROMPT_TEXT,
+    parse_mode: 'HTML',
     reply_markup: {
       inline_keyboard: [[
         {
           text: '✍️ Написать',
-          callback_data: `reply:${promptMessage.message_id}`,
+          callback_data: `reply:${userChatId}`,
         },
       ]],
     },
