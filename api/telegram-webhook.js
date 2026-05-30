@@ -151,6 +151,24 @@ async function handleCallbackQuery(callbackQuery) {
     return;
   }
 
+  // Кнопка "Написать" под промптом — активирует force_reply на нужное сообщение
+  if (data.startsWith('reply:')) {
+    const promptMessageId = Number(data.split(':')[1]);
+    await telegram('sendMessage', {
+      chat_id: chatId,
+      text: SUPPORT_PROMPT_TEXT,
+      parse_mode: 'HTML',
+      reply_markup: {
+        force_reply: true,
+        input_field_placeholder: 'Ваш вопрос',
+        selective: true,
+      },
+      reply_to_message_id: promptMessageId,
+    });
+    await answerCallbackQuery(callbackQuery.id, '');
+    return;
+  }
+
   if (data.startsWith('close:') || data.startsWith('delete:')) {
     const parts = data.split(':');
     const action = parts[0];
@@ -217,7 +235,7 @@ async function handleMessage(message) {
 async function handleStartCommand(chatId) {
   await telegram('sendMessage', {
     chat_id: chatId,
-    text: 'Я бот поддержки <i>rasu</i>\n\nВыберите действие ниже:',
+    text: 'Я бот поддержки Rasu\n\nВыберите действие ниже:',
     parse_mode: 'HTML',
     reply_markup: { inline_keyboard: buildStartButtons().inline_keyboard },
   });
@@ -351,12 +369,27 @@ async function handleGroupChatMessage(message) {
     }
   }
 
+  // Отправляем промпт с force_reply
   const prompt = buildSupportPrompt();
-  await telegram('sendMessage', {
+  const promptMessage = await telegram('sendMessage', {
     chat_id: userChatId,
     text: prompt.text,
     parse_mode: prompt.parse_mode,
     reply_markup: prompt.reply_markup,
+  });
+
+  // Отправляем кнопку "Написать" отдельным сообщением
+  await telegram('sendMessage', {
+    chat_id: userChatId,
+    text: '👇 Нажмите чтобы ответить',
+    reply_markup: {
+      inline_keyboard: [[
+        {
+          text: '✍️ Написать',
+          callback_data: `reply:${promptMessage.message_id}`,
+        },
+      ]],
+    },
   });
 
   await telegram('sendMessage', {
