@@ -141,11 +141,18 @@ async function handleCallbackQuery(callbackQuery) {
   if (data === 'support') {
     const prompt = buildSupportPrompt();
     await telegram('sendMessage', {
-      chat_id: chatId,
-      text: prompt.text,
-      parse_mode: prompt.parse_mode,
-      reply_markup: prompt.reply_markup,
-    });
+    chat_id: chatId,
+    text: prompt.text,
+    parse_mode: prompt.parse_mode,
+    reply_markup: {
+    inline_keyboard: [[
+      {
+        text: 'Написать',
+        callback_data: `reply:${chatId}`,
+      },
+    ]],
+  },
+});
 
     await answerCallbackQuery(callbackQuery.id, '✍️ Напишите ваш вопрос одним сообщением.');
     return;
@@ -387,7 +394,7 @@ async function handleGroupChatMessage(message) {
     reply_markup: {
       inline_keyboard: [[
         {
-          text: '✍️ Написать',
+          text: 'Написать',
           callback_data: `reply:${userChatId}`,
         },
       ]],
