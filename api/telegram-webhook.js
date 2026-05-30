@@ -214,7 +214,7 @@ async function handleMessage(message) {
 async function handleStartCommand(chatId) {
   await telegram('sendMessage', {
     chat_id: chatId,
-    text: 'Привет! Я бот поддержки <u>rasu</u>.\nВыберите действие ниже:',
+    text: 'Я бот поддержки <i>rasu</i>\n\nВыберите действие ниже:',
     parse_mode: 'HTML',
     reply_markup: { inline_keyboard: buildStartButtons().inline_keyboard },
   });
