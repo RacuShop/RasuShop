@@ -238,7 +238,7 @@ async function handlePrivateChatMessage(message) {
   if (message.photo && message.photo.length > 1) {
     await telegram('sendMessage', {
       chat_id: message.chat.id,
-      text: '⚠️ Можно прикреплять только одну фотографию.',
+      text: '⚠️ Отправьте фото через каталог в приложении.\n\n<i>Обращение закрыто<i>',
       parse_mode: 'HTML',
     });
     return;
