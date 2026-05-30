@@ -1346,8 +1346,19 @@ function renderAccount() {
     // Добавляем поддержку скролла колесом мыши
     setupHorizontalScrollWheel(profileFilesList);
 
-    // Load order status
+    // Mockup approval block
+    const mockupBlock = document.createElement('div');
+    mockupBlock.className = 'profile-card';
+    mockupBlock.id = 'mockup-block';
+    mockupBlock.innerHTML = `
+        <div class="profile-card-title">Согласование макета</div>
+        <div id="mockup-content" class="mockup-empty-text">Загрузка...</div>
+    `;
+    content.appendChild(createBlock(mockupBlock));
+
+    // Load order status and mockup
     loadOrderStatus();
+    loadMockup();
 }
 
 // Загружает статус активного заказа пользователя с бэкенда.
@@ -1383,6 +1394,78 @@ async function loadOrderStatus() {
     }
 }
 
+// Загружает макет для согласования из Weeek.
+async function loadMockup() {
+    const tg = window.Telegram?.WebApp;
+    const user = tg?.initDataUnsafe?.user;
+    const container = document.getElementById('mockup-content');
+    if (!container) return;
+
+    if (!user) {
+        container.innerHTML = '<span class="mockup-empty-text">Нет макета</span>';
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/get-mockup?telegramId=${user.id}`);
+        const data = await res.json();
+
+        if (!data.hasMockup) {
+            container.innerHTML = '<span class="mockup-empty-text">Нет готового макета</span>';
+            return;
+        }
+
+        const { url, name, taskId } = data.mockup;
+
+        container.innerHTML = `
+            <div class="mockup-image-wrap">
+                <a href="${url}" target="_blank" rel="noopener" class="mockup-image-link" title="Нажмите чтобы открыть в полном размере">
+                    <img src="${url}" alt="${name}" class="mockup-image" />
+                    <div class="mockup-image-hint">Нажмите для просмотра</div>
+                </a>
+            </div>
+            <div id="mockup-actions" class="mockup-actions">
+                <button class="mockup-btn mockup-btn-approve" data-task-id="${taskId}">✓ Согласовано</button>
+                <button class="mockup-btn mockup-btn-revision" data-task-id="${taskId}">✎ Не согласовано</button>
+            </div>
+            <div id="mockup-revision-form" class="mockup-revision-form hidden">
+                <textarea id="mockup-revision-text" class="survey-textarea mockup-revision-textarea" maxlength="1000" placeholder="Опишите ваши правки..."></textarea>
+                <div class="mockup-revision-footer">
+                    <button class="mockup-btn-cancel-revision">Отмена</button>
+                    <button class="mockup-btn-send-revision primary-btn" data-task-id="${taskId}">Отправить</button>
+                </div>
+            </div>
+            <div id="mockup-done-msg" class="mockup-done-msg hidden"></div>
+        `;
+
+    } catch (err) {
+        console.error('Error loading mockup:', err);
+        if (container) container.innerHTML = '<span class="mockup-empty-text">Не удалось загрузить</span>';
+    }
+}
+
+// Отправляет ответ клиента по макету (согласовано / правки).
+async function sendMockupResponse(taskId, status, comment = '') {
+    const tg = window.Telegram?.WebApp;
+    const user = tg?.initDataUnsafe?.user;
+
+    const res = await fetch('/api/mockup-response', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            taskId,
+            telegramId: user?.id,
+            status,
+            comment,
+        }),
+    });
+
+    if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Ошибка отправки');
+    }
+}
+
 // Переключает между экранами: каталог, корзина, аккаунт, о проекте.
 function switchScreen(screen) {
     state.screen = screen;
@@ -1404,6 +1487,85 @@ function switchScreen(screen) {
         }
     }
 }
+
+// --- ОБРАБОТЧИКИ СОГЛАСОВАНИЯ МАКЕТА ---
+
+// Кнопка "Согласовано"
+on(document, 'click', '.mockup-btn-approve', async e => {
+    const btn = e.target.closest('.mockup-btn-approve');
+    if (!btn) return;
+    const taskId = btn.dataset.taskId;
+
+    btn.disabled = true;
+    btn.textContent = 'Отправка...';
+
+    try {
+        await sendMockupResponse(taskId, 'approved');
+        const actions = document.getElementById('mockup-actions');
+        const doneMsg = document.getElementById('mockup-done-msg');
+        if (actions) actions.classList.add('hidden');
+        if (doneMsg) {
+            doneMsg.textContent = '✅ Макет согласован! Мы продолжим работу.';
+            doneMsg.classList.remove('hidden');
+        }
+    } catch (err) {
+        btn.disabled = false;
+        btn.textContent = '✓ Согласовано';
+        alert('Ошибка: ' + err.message);
+    }
+});
+
+// Кнопка "Не согласовано" — показывает форму правок
+on(document, 'click', '.mockup-btn-revision', e => {
+    const btn = e.target.closest('.mockup-btn-revision');
+    if (!btn) return;
+    const actions = document.getElementById('mockup-actions');
+    const form = document.getElementById('mockup-revision-form');
+    if (actions) actions.classList.add('hidden');
+    if (form) form.classList.remove('hidden');
+    const textarea = document.getElementById('mockup-revision-text');
+    if (textarea) setTimeout(() => textarea.focus(), 100);
+});
+
+// Кнопка "Отмена" в форме правок
+on(document, 'click', '.mockup-btn-cancel-revision', e => {
+    const actions = document.getElementById('mockup-actions');
+    const form = document.getElementById('mockup-revision-form');
+    if (form) form.classList.add('hidden');
+    if (actions) actions.classList.remove('hidden');
+});
+
+// Кнопка "Отправить" правки
+on(document, 'click', '.mockup-btn-send-revision', async e => {
+    const btn = e.target.closest('.mockup-btn-send-revision');
+    if (!btn) return;
+    const taskId = btn.dataset.taskId;
+    const textarea = document.getElementById('mockup-revision-text');
+    const comment = textarea ? textarea.value.trim() : '';
+
+    if (!comment) {
+        alert('Пожалуйста, опишите ваши правки');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Отправка...';
+
+    try {
+        await sendMockupResponse(taskId, 'revision', comment);
+        const form = document.getElementById('mockup-revision-form');
+        const doneMsg = document.getElementById('mockup-done-msg');
+        if (form) form.classList.add('hidden');
+        if (doneMsg) {
+            doneMsg.textContent = '🔄 Правки отправлены! Мы свяжемся с вами.';
+            doneMsg.classList.remove('hidden');
+        }
+    } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Отправить';
+        alert('Ошибка: ' + err.message);
+    }
+});
 
 // --- РАБОТА КЛИКОВ ---
 on(document, 'click', '#modal-close', closeModal);

@@ -1193,12 +1193,149 @@ body {
     border-radius: 3px;
 }
 
+
+/* ────────────────────────────────────────────────────── */
+/* Блок согласования макета — профиль */
+/* ────────────────────────────────────────────────────── */
+
+.mockup-empty-text {
+    font-size: 0.9rem;
+    color: var(--color-notactive);
+}
+
+.mockup-image-wrap {
+    position: relative;
+    width: 100%;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: var(--space-md);
+    background: #f0f0f0;
+}
+
+.mockup-image-link {
+    display: block;
+    position: relative;
+    text-decoration: none;
+}
+
+.mockup-image {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    display: block;
+    border-radius: var(--radius-md);
+    transition: opacity 0.2s;
+}
+
+.mockup-image-link:hover .mockup-image,
+.mockup-image-link:active .mockup-image {
+    opacity: 0.88;
+}
+
+.mockup-image-hint {
+    position: absolute;
+    bottom: 8px;
+    right: 10px;
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.9);
+    background: rgba(0,0,0,0.35);
+    padding: 3px 8px;
+    border-radius: 20px;
+    pointer-events: none;
+}
+
+.mockup-actions {
+    display: flex;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
+.mockup-btn {
+    flex: 1;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    border: none;
+    font-family: inherit;
+    font-size: 0.95rem;
+    cursor: pointer;
+    font-weight: 500;
+    transition: opacity 0.2s, transform 0.1s;
+}
+
+.mockup-btn:active {
+    transform: scale(0.97);
+}
+
+.mockup-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.mockup-btn-approve {
+    background: var(--color-primary);
+    color: white;
+}
+
+.mockup-btn-approve:hover {
+    opacity: 0.88;
+}
+
+.mockup-btn-revision {
+    background: white;
+    color: var(--color-text);
+    border: 1px solid var(--color-secondary) !important;
+}
+
+.mockup-btn-revision:hover {
+    border-color: var(--color-primary) !important;
+    color: var(--color-primary);
+}
+
+.mockup-revision-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+}
+
+.mockup-revision-textarea {
+    min-height: 100px;
+}
+
+.mockup-revision-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+    align-items: center;
+}
+
+.mockup-btn-cancel-revision {
+    background: none;
+    border: none;
+    color: var(--color-notactive);
+    font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: var(--space-xs) var(--space-sm);
+}
+
+.mockup-btn-cancel-revision:hover {
+    color: var(--color-text);
+}
+
+.mockup-done-msg {
+    font-size: 0.95rem;
+    font-weight: 500;
+    padding: var(--space-sm) var(--space-md);
+    background: rgba(18, 18, 175, 0.06);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    text-align: center;
+}
+
+
 /* Гарантированная защита от перезаписи цвета Telegram */
 .file-remove-btn svg path,
 .remove-uploaded-file svg path {
     stroke: currentColor !important;
 }
-
-
-
-
