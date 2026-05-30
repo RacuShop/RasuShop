@@ -44,10 +44,9 @@ function buildStartButtons() {
   };
 }
 
-function buildSupportPrompt(ticketId) {
+function buildSupportPrompt() {
   return {
-    text: `✍️ Напишите ваш вопрос одним сообщением\n\n` +
-      `ticketId: ${ticketId}`,
+    text: '✍️ Напишите ваш вопрос одним сообщением',
     reply_markup: {
       force_reply: true,
       input_field_placeholder: 'Ваш вопрос',
@@ -57,28 +56,23 @@ function buildSupportPrompt(ticketId) {
   };
 }
 
-// Extract ticket metadata from Telegram message text.
-// This is the only source of ticket state in the whole bot.
 function getTicketInfoFromText(text) {
   if (!text) return null;
 
-  const ticketIdMatch = text.match(/ticketId\s*:\s*([A-Za-z0-9_-]+)/i);
   const userChatIdMatch = text.match(/userChatId\s*:\s*(-?[0-9]+)/i);
 
   return {
-    ticketId: ticketIdMatch ? ticketIdMatch[1] : null,
     userChatId: userChatIdMatch ? Number(userChatIdMatch[1]) : null,
   };
 }
 
-function buildTicketMessage(message, ticketId, userChatId) {
+function buildTicketMessage(message, userChatId) {
   const username = message.from.username
     ? `@${message.from.username}`
     : `${message.from.first_name || ''} ${message.from.last_name || ''}`.trim() || 'Пользователь';
 
   return [
     '📩 <b>Новое обращение в поддержку</b>',
-    `ticketId: ${ticketId}`,
     `username: ${username}`,
     `userChatId: ${userChatId}`,
     '',
@@ -86,10 +80,9 @@ function buildTicketMessage(message, ticketId, userChatId) {
   ].join('\n');
 }
 
-function buildManagerReplyToUser(message, ticketId) {
+function buildManagerReplyToUser(message) {
   return [
     `📬 <b>Ответ менеджера</b>`,
-    `ticketId: ${ticketId}`,
     '',
     escapeHtml(message.text),
   ].join('\n');
@@ -100,10 +93,6 @@ function escapeHtml(text) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
-}
-
-function createTicketId() {
-  return Math.random().toString(36).substring(2, 10);
 }
 
 // Main webhook entrypoint. Compatible with Vercel serverless.
@@ -148,8 +137,7 @@ async function handleCallbackQuery(callbackQuery) {
   }
 
   if (data === 'support') {
-    const ticketId = createTicketId();
-    const prompt = buildSupportPrompt(ticketId);
+    const prompt = buildSupportPrompt();
     await telegram('sendMessage', {
       chat_id: chatId,
       text: prompt.text,
@@ -161,10 +149,10 @@ async function handleCallbackQuery(callbackQuery) {
     return;
   }
 
-  if (data.startsWith('close:')) {
+  if (data.startsWith('close:') || data.startsWith('delete:')) {
     const parts = data.split(':');
-    const ticketId = parts[1];
-    const userChatId = Number(parts[2]);
+    const action = parts[0];
+    const userChatId = Number(parts[1]);
 
     if (userChatId) {
       await telegram('sendMessage', {
@@ -174,15 +162,22 @@ async function handleCallbackQuery(callbackQuery) {
       });
     }
 
-    await answerCallbackQuery(callbackQuery.id, 'Тикет закрыт');
+    await answerCallbackQuery(callbackQuery.id, action === 'delete' ? 'Обращение удалено' : 'Тикет закрыт');
 
     try {
-      await telegram('editMessageReplyMarkup', {
-        chat_id: chatId,
-        message_id: callbackQuery.message.message_id,
-      });
+      if (action === 'delete') {
+        await telegram('deleteMessage', {
+          chat_id: chatId,
+          message_id: callbackQuery.message.message_id,
+        });
+      } else {
+        await telegram('editMessageReplyMarkup', {
+          chat_id: chatId,
+          message_id: callbackQuery.message.message_id,
+        });
+      }
     } catch (error) {
-      console.warn('Unable to remove inline buttons after close:', formatError(error));
+      console.warn('Unable to update manager message after close/delete:', formatError(error));
     }
 
     return;
@@ -233,13 +228,12 @@ async function handlePrivateChatMessage(message) {
     return;
   }
 
-  const meta = getTicketInfoFromText(replyTo.text);
-  if (!meta || !meta.ticketId) {
+  const supportPromptText = '✍️ Напишите ваш вопрос одним сообщением';
+  if (!replyTo.text.startsWith(supportPromptText)) {
     return;
   }
 
   const userChatId = message.chat.id;
-  const ticketId = meta.ticketId;
 
   try {
     await telegram('deleteMessage', {
@@ -250,7 +244,7 @@ async function handlePrivateChatMessage(message) {
     console.warn('Unable to delete support prompt:', formatError(error));
   }
 
-  const ticketText = buildTicketMessage(message, ticketId, userChatId);
+  const ticketText = buildTicketMessage(message, userChatId);
   await telegram('sendMessage', {
     chat_id: GROUP_CHAT_ID,
     text: ticketText,
@@ -260,7 +254,11 @@ async function handlePrivateChatMessage(message) {
         [
           {
             text: '❌ Закрыть',
-            callback_data: `close:${ticketId}:${userChatId}`,
+            callback_data: `close:${userChatId}`,
+          },
+          {
+            text: '🗑 Удалить',
+            callback_data: `delete:${userChatId}`,
           },
         ],
       ],
@@ -275,7 +273,7 @@ async function handlePrivateChatMessage(message) {
 }
 
 // Manager responses are detected by replies to ticket messages in the group.
-// The bot extracts ticketId and userChatId from the replied-to message.
+// The bot extracts userChatId from the replied-to message.
 async function handleGroupChatMessage(message) {
   const replyTo = message.reply_to_message;
   if (!replyTo || !replyTo.text) {
@@ -283,22 +281,20 @@ async function handleGroupChatMessage(message) {
   }
 
   const meta = getTicketInfoFromText(replyTo.text);
-  if (!meta || !meta.ticketId || !meta.userChatId) {
+  if (!meta || !meta.userChatId) {
     return;
   }
 
   const userChatId = meta.userChatId;
-  const ticketId = meta.ticketId;
 
-  const answerText = buildManagerReplyToUser(message, ticketId);
+  const answerText = buildManagerReplyToUser(message);
   await telegram('sendMessage', {
     chat_id: userChatId,
     text: answerText,
     parse_mode: 'HTML',
   });
 
-  const nextTicketId = createTicketId();
-  const prompt = buildSupportPrompt(nextTicketId);
+  const prompt = buildSupportPrompt();
   await telegram('sendMessage', {
     chat_id: userChatId,
     text: prompt.text,
@@ -308,7 +304,7 @@ async function handleGroupChatMessage(message) {
 
   await telegram('sendMessage', {
     chat_id: message.chat.id,
-    text: '✅ Ответ отправлен пользователю и клиенту открыт новый запрос.',
+    text: '✅ Ответ отправлен пользователю и клиент снова может написать одно сообщение.',
   });
 }
 
