@@ -6,6 +6,8 @@ const BOT_TOKEN = process.env.BOT_TOKEN;
 const GROUP_CHAT_ID = '-1003781457668';
 const WEB_APP_URL = 'https://rasushop.vercel.app/';
 const TELEGRAM_API = BOT_TOKEN ? `https://api.telegram.org/bot${BOT_TOKEN}` : null;
+const SUPPORT_PROMPT_TEXT = '✍️ Напишите ваш вопрос одним сообщением';
+const SUPPORT_BUTTON_HINT_TEXT = 'Для обращения, нажмите кнопку "Поддержка"';
 
 function formatError(error) {
   if (error instanceof Error) return error.message;
@@ -46,7 +48,7 @@ function buildStartButtons() {
 
 function buildSupportPrompt() {
   return {
-    text: '✍️ Напишите ваш вопрос одним сообщением',
+    text: SUPPORT_PROMPT_TEXT,
     reply_markup: {
       force_reply: true,
       input_field_placeholder: 'Ваш вопрос',
@@ -226,11 +228,20 @@ async function handleStartCommand(chatId) {
 async function handlePrivateChatMessage(message) {
   const replyTo = message.reply_to_message;
   if (!replyTo || !replyTo.text) {
+    await telegram('sendMessage', {
+      chat_id: message.chat.id,
+      text: SUPPORT_BUTTON_HINT_TEXT,
+      parse_mode: 'HTML',
+    });
     return;
   }
 
-  const supportPromptText = '✍️ Напишите ваш вопрос одним сообщением';
-  if (!replyTo.text.startsWith(supportPromptText)) {
+  if (!replyTo.text.startsWith(SUPPORT_PROMPT_TEXT)) {
+    await telegram('sendMessage', {
+      chat_id: message.chat.id,
+      text: SUPPORT_BUTTON_HINT_TEXT,
+      parse_mode: 'HTML',
+    });
     return;
   }
 
@@ -238,7 +249,7 @@ async function handlePrivateChatMessage(message) {
   if (message.photo && message.photo.length > 1) {
     await telegram('sendMessage', {
       chat_id: message.chat.id,
-      text: '⚠️ Отправьте фото через каталог в приложении.\n\n<i>Обращение закрыто</i>',
+      text: '⚠️ Можно прикреплять только одну фотографию.',
       parse_mode: 'HTML',
     });
     return;
