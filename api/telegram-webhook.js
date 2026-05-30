@@ -1,8 +1,7 @@
 const GROUP_CHAT_ID = -1003781457668;
 
-// временная память (потом база)
 const tickets = {};
-const activeReply = {};
+const activeReply = {}; // managerId -> ticketId
 
 const genTicketId = () => Math.random().toString(36).substring(2, 10);
 
@@ -19,16 +18,12 @@ module.exports = async (req, res) => {
         const msg = body.message;
         const cb = body.callback_query;
 
-        console.log("🔥 WEBHOOK HIT");
-
         // =========================
-        // CALLBACKS (ВСЕ КНОПКИ)
+        // CALLBACKS
         // =========================
         if (cb) {
             const data = cb.data;
-            const chatId = cb.message.chat.id;
 
-            // ОБЯЗАТЕЛЬНО закрываем callback
             await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -44,38 +39,44 @@ module.exports = async (req, res) => {
                 const ticketId = genTicketId();
 
                 tickets[ticketId] = {
-                    userChatId: chatId,
-                    status: "waiting"
+                    userChatId: cb.message.chat.id,
+                    status: "collecting"
                 };
 
                 await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        chat_id: chatId,
-                        text: "✍️ Опишите ваш вопрос одним сообщением"
+                        chat_id: cb.message.chat.id,
+                        text: "✍️ Напишите ваш вопрос одним сообщением"
                     })
                 });
             }
 
             // =========================
-            // MANAGER ACTIONS
+            // MANAGER: REPLY
             // =========================
-
             if (data.startsWith("reply_")) {
                 const ticketId = data.split("_")[1];
+
                 activeReply[cb.from.id] = ticketId;
 
+                // 👉 ВАЖНО: сообщение в ГРУППУ
                 await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        chat_id: cb.from.id,
-                        text: `✍️ Напишите ответ клиенту (ticket ${ticketId})`
+                        chat_id: GROUP_CHAT_ID,
+                        text: `✍️ Менеджер начал ответ по тикету #${ticketId}
+
+➡️ Теперь просто отправьте следующее сообщение в этот чат — оно уйдёт клиенту.`
                     })
                 });
             }
 
+            // =========================
+            // IGNORE
+            // =========================
             if (data.startsWith("ignore_")) {
                 const ticketId = data.split("_")[1];
                 const ticket = tickets[ticketId];
@@ -90,8 +91,13 @@ module.exports = async (req, res) => {
                         })
                     });
                 }
+
+                if (ticket) ticket.status = "closed";
             }
 
+            // =========================
+            // CONTINUE
+            // =========================
             if (data.startsWith("continue_")) {
                 const ticketId = data.split("_")[1];
                 if (tickets[ticketId]) {
@@ -99,6 +105,9 @@ module.exports = async (req, res) => {
                 }
             }
 
+            // =========================
+            // CLOSE
+            // =========================
             if (data.startsWith("close_")) {
                 const ticketId = data.split("_")[1];
                 const ticket = tickets[ticketId];
@@ -121,7 +130,7 @@ module.exports = async (req, res) => {
         }
 
         // =========================
-        // MESSAGE FLOW
+        // MESSAGE
         // =========================
         if (!msg) return res.status(200).send("ok");
 
@@ -129,13 +138,8 @@ module.exports = async (req, res) => {
         const text = msg.text;
         const isPrivate = msg.chat.type === "private";
 
-        console.log("========== NEW MESSAGE ==========");
-        console.log("CHAT ID:", chatId);
-        console.log("TYPE:", msg.chat.type);
-        console.log("TEXT:", text);
-
         // =========================
-        // /START
+        // START
         // =========================
         if (isPrivate && text === "/start") {
             await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -156,10 +160,11 @@ module.exports = async (req, res) => {
         }
 
         // =========================
-        // USER MESSAGE → GROUP
+        // USER MESSAGE FLOW
         // =========================
         if (isPrivate && text) {
 
+            // ищем тикет
             const ticketId = Object.keys(tickets).find(
                 t => tickets[t].userChatId === chatId && tickets[t].status !== "closed"
             );
@@ -167,8 +172,17 @@ module.exports = async (req, res) => {
             if (!ticketId) return res.status(200).send("ok");
 
             const ticket = tickets[ticketId];
-            ticket.status = "open";
 
+            // ❗ БЛОКИРУЕМ СПАМ
+            if (ticket.status === "collecting") {
+                ticket.status = "open";
+            }
+
+            if (ticket.status === "closed") {
+                return res.status(200).send("ok");
+            }
+
+            // отправка в группу
             const sent = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -207,7 +221,7 @@ module.exports = async (req, res) => {
         }
 
         // =========================
-        // MANAGER REPLY → CLIENT
+        // MANAGER → CLIENT REPLY FLOW
         // =========================
         if (!isPrivate && activeReply[msg.from.id]) {
 
