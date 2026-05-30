@@ -37,7 +37,7 @@ function buildStartButtons() {
   return {
     inline_keyboard: [
       [
-        { text: '🛍 Каталог', web_app: { url: WEB_APP_URL } },
+        { text: '🛒 Каталог', web_app: { url: WEB_APP_URL } },
         { text: '💬 Поддержка', callback_data: 'support' },
       ],
     ],
@@ -214,7 +214,7 @@ async function handleMessage(message) {
 async function handleStartCommand(chatId) {
   await telegram('sendMessage', {
     chat_id: chatId,
-    text: 'Привет! Я бот поддержки Rasu Shop. Выберите действие ниже.',
+    text: 'Привет! Я бот поддержки <u>rasu</u>.\nВыберите действие ниже:',
     parse_mode: 'HTML',
     reply_markup: { inline_keyboard: buildStartButtons().inline_keyboard },
   });
