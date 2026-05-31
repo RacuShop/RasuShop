@@ -1018,12 +1018,6 @@ function openSurveyModal(item) {
         </div>
     `;
 
-    // ensure inputs scroll into view on mobile when focused
-    content.querySelectorAll('input, textarea').forEach(el => {
-        el.addEventListener('focus', () => {
-            setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 250);
-        });
-    });
 
     content.querySelector('#save-survey')?.addEventListener('click', () => {
         saveSurveyFromModal();
