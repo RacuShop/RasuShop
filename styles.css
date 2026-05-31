@@ -1244,83 +1244,64 @@ body {
     pointer-events: none;
 }
 
-.mockup-actions {
+/* Кнопки выбора: Согласовано / Не согласовано */
+.mockup-choice-row {
     display: flex;
     gap: var(--space-sm);
     margin-bottom: var(--space-sm);
 }
 
-.mockup-btn {
+.mockup-choice-btn {
     flex: 1;
     padding: var(--space-sm) var(--space-md);
     border-radius: var(--radius-md);
-    border: none;
+    border: 1px solid var(--color-secondary);
+    background: white;
+    color: var(--color-text);
     font-family: inherit;
     font-size: 0.95rem;
-    cursor: pointer;
     font-weight: 500;
-    transition: opacity 0.2s, transform 0.1s;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 
-.mockup-btn:active {
-    transform: scale(0.97);
+.mockup-choice-btn:hover {
+    border-color: var(--color-primary);
 }
 
-.mockup-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.mockup-btn-approve {
+.mockup-choice-btn.mockup-choice-active {
     background: var(--color-primary);
+    border-color: var(--color-primary);
     color: white;
 }
 
-.mockup-btn-approve:hover {
-    opacity: 0.88;
+/* Поле для правок — скрываем через visibility чтобы не ломать layout */
+.mockup-revision-wrap {
+    margin-bottom: var(--space-sm);
+    overflow: hidden;
+    max-height: 200px;
+    transition: max-height 0.2s ease, margin 0.2s ease;
 }
 
-.mockup-btn-revision {
-    background: white;
-    color: var(--color-text);
-    border: 1px solid var(--color-secondary) !important;
-}
-
-.mockup-btn-revision:hover {
-    border-color: var(--color-primary) !important;
-    color: var(--color-primary);
-}
-
-.mockup-revision-form {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-    margin-top: var(--space-sm);
+.mockup-revision-wrap.mockup-revision-hidden {
+    max-height: 0;
+    margin-bottom: 0;
 }
 
 .mockup-revision-textarea {
     min-height: 100px;
+    width: 100%;
 }
 
-.mockup-revision-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--space-sm);
-    align-items: center;
+/* Кнопка отправить */
+.mockup-send-btn {
+    width: 100%;
+    margin-top: var(--space-xs);
 }
 
-.mockup-btn-cancel-revision {
-    background: none;
-    border: none;
-    color: var(--color-notactive);
-    font-family: inherit;
-    font-size: 0.9rem;
-    cursor: pointer;
-    padding: var(--space-xs) var(--space-sm);
-}
-
-.mockup-btn-cancel-revision:hover {
-    color: var(--color-text);
+.mockup-send-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
 }
 
 .mockup-done-msg {
@@ -1331,6 +1312,7 @@ body {
     border-radius: var(--radius-md);
     color: var(--color-text);
     text-align: center;
+    margin-top: var(--space-sm);
 }
 
 
