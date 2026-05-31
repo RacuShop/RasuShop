@@ -1486,17 +1486,22 @@ async function loadMockup() {
             try {
                 const ta = container.querySelector('#mockup-revision-text');
                 const comment = ta ? ta.value.trim() : '';
-                await sendMockupResponse(taskId, currentChoice, comment);
+                await sendMockupResponse(taskId, currentChoice, comment, name);
 
-                const doneMsg = container.querySelector('#mockup-done-msg');
-                container.querySelector('.mockup-choice-row').style.display = 'none';
-                revisionWrap.classList.add('mockup-revision-hidden');
-                sendBtn.style.display = 'none';
-
-                doneMsg.style.display = 'block';
-                doneMsg.textContent = currentChoice === 'approved'
+                // Заменяем весь контент одной операцией — не трогаем отдельные элементы,
+                // чтобы не вызывать layout thrashing который сбрасывает фокус других textarea
+                const msg = currentChoice === 'approved'
                     ? '✅ Макет согласован! Мы продолжим работу.'
                     : '🔄 Правки отправлены! Мы свяжемся с вами.';
+                container.innerHTML = `
+                    <div class="mockup-image-wrap">
+                        <a href="${url}" target="_blank" rel="noopener" class="mockup-image-link" title="Нажмите для просмотра">
+                            <img src="${url}" alt="${name}" class="mockup-image" />
+                            <div class="mockup-image-hint">Нажмите для просмотра</div>
+                        </a>
+                    </div>
+                    <div class="mockup-done-msg">${msg}</div>
+                `;
 
             } catch (err) {
                 sendBtn.disabled = false;
@@ -1511,8 +1516,8 @@ async function loadMockup() {
     }
 }
 
-// Отправляет ответ клиента по макету (согласовано / правки).
-async function sendMockupResponse(taskId, status, comment = '') {
+// Отправляет ответ клиента — создаёт подзадачу в Weeek.
+async function sendMockupResponse(taskId, status, comment = '', mockupName = '') {
     const tg = window.Telegram?.WebApp;
     const user = tg?.initDataUnsafe?.user;
 
@@ -1524,6 +1529,7 @@ async function sendMockupResponse(taskId, status, comment = '') {
             telegramId: user?.id,
             status,
             comment,
+            mockupName,
         }),
     });
 

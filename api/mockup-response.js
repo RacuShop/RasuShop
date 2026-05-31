@@ -1,6 +1,7 @@
 /**
  * Vercel serverless function: Mockup response endpoint
- * Saves the client's approval or revision request as a comment on the Weeek task
+ * Creates a subtask under the client's order task in Weeek
+ * with the client's approval status and optional revision comment.
  *
  * Environment variable required: WEEEK_API_TOKEN
  */
@@ -12,10 +13,8 @@ export default async function handler(req, res) {
     }
 
     try {
+        const { taskId, telegramId, status, comment, mockupName } = req.body;
 
-        const { taskId, telegramId, status, comment } = req.body;
-
-        // status: 'approved' | 'revision'
         if (!taskId || !telegramId || !status) {
             return res.status(400).json({ error: 'Missing required fields: taskId, telegramId, status' });
         }
@@ -24,31 +23,36 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: 'Server configuration error' });
         }
 
-        // Build comment text
-        let commentText;
+        const fileName = mockupName || 'макет';
+
+        let title, description;
+
         if (status === 'approved') {
-            commentText = `✅ Клиент согласовал макет`;
+            title = `✅ Согласован: ${fileName}`;
+            description = `Клиент согласовал макет.`;
         } else if (status === 'revision') {
             const revisionText = comment?.trim() || 'Без комментария';
-            commentText = `🔄 Клиент запросил правки:\n\n${revisionText}`;
+            title = `🔄 Правки: ${fileName}`;
+            description = `Клиент запросил правки:\n\n${revisionText}`;
         } else {
-            return res.status(400).json({ error: 'Invalid status value. Use "approved" or "revision"' });
+            return res.status(400).json({ error: 'Invalid status. Use "approved" or "revision"' });
         }
 
-        // Post comment to Weeek task
-        const weeekResponse = await fetch(
-            `https://api.weeek.net/public/v1/tm/tasks/${taskId}/comments`,
-            {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${process.env.WEEEK_API_TOKEN}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    content: commentText,
-                }),
-            }
-        );
+        // Создаём подзадачу под задачей заказа
+        const weeekResponse = await fetch('https://api.weeek.net/public/v1/tm/tasks', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${process.env.WEEEK_API_TOKEN}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                title,
+                description,
+                parentId: Number(taskId),
+                projectId: 2,
+                boardId: 2,
+            }),
+        });
 
         let responseData;
         try {
@@ -59,14 +63,17 @@ export default async function handler(req, res) {
         }
 
         if (!weeekResponse.ok) {
-            console.error('Weeek comment error:', weeekResponse.status, responseData);
+            console.error('Weeek subtask error:', weeekResponse.status, responseData);
             return res.status(weeekResponse.status).json({
-                error: 'Failed to post comment to Weeek',
+                error: 'Failed to create subtask in Weeek',
                 details: responseData,
             });
         }
 
-        return res.status(200).json({ success: true });
+        return res.status(200).json({
+            success: true,
+            subtaskId: responseData?.task?.id,
+        });
 
     } catch (error) {
         console.error('mockup-response error:', error);
