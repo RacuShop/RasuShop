@@ -114,6 +114,7 @@ let state = {
     activeCategory: null,
     cart: [], // each item: { id, title, basePrice, finalPrice, category, surveyAnswers: [] }
     uploadedFiles: [], // files selected for upload before order submission
+    completedMockupIds: [], // mockups answered in this app session
     modalMode: null,      // 'survey' | 'product' | null
     modalItemId: null,    // which item is currently being edited in survey
     productionSurvey: {}, // temporary storage for production survey before adding to cart
@@ -1407,7 +1408,10 @@ async function loadMockup() {
     }
 
     try {
-        const res = await fetch(`/api/get-mockup?telegramId=${user.id}`);
+        const ignoredMockups = state.completedMockupIds
+            .map(id => `ignoreMockupId=${encodeURIComponent(id)}`)
+            .join('&');
+        const res = await fetch(`/api/get-mockup?telegramId=${user.id}${ignoredMockups ? `&${ignoredMockups}` : ''}`);
         const data = await res.json();
 
         if (!data.hasMockup) {
@@ -1415,7 +1419,7 @@ async function loadMockup() {
             return;
         }
 
-        const { url, name, taskId } = data.mockup;
+        const { id, url, name, taskId } = data.mockup;
 
         // Рендерим блок — textarea всегда в DOM, просто скрыт через CSS visibility
         // Это важно: не используем display:none/hidden чтобы не ломать фокус других полей
@@ -1498,22 +1502,18 @@ async function loadMockup() {
             try {
                 const ta = container.querySelector('#mockup-revision-text');
                 const comment = ta ? ta.value.trim() : '';
-                await sendMockupResponse(taskId, currentChoice, comment, name);
+                await sendMockupResponse(taskId, currentChoice, comment, name, id);
+                if (id && !state.completedMockupIds.includes(String(id))) {
+                    state.completedMockupIds.push(String(id));
+                }
 
                 // Заменяем весь контент одной операцией — не трогаем отдельные элементы,
                 // чтобы не вызывать layout thrashing который сбрасывает фокус других textarea
                 const msg = currentChoice === 'approved'
                     ? '✅ Макет согласован! Мы продолжим работу.'
                     : '🔄 Правки отправлены! Мы свяжемся с вами.';
-                container.innerHTML = `
-                    <div class="mockup-image-wrap">
-                        <a href="${url}" target="_blank" rel="noopener" class="mockup-image-link" title="Нажмите для просмотра">
-                            <img src="${url}" alt="${name}" class="mockup-image" />
-                            <div class="mockup-image-hint">Нажмите для просмотра</div>
-                        </a>
-                    </div>
-                    <div class="mockup-done-msg">${msg}</div>
-                `;
+                container.innerHTML = `<div class="mockup-done-msg">${msg}</div>`;
+                setTimeout(loadMockup, 700);
 
             } catch (err) {
                 sendBtn.disabled = false;
@@ -1529,7 +1529,7 @@ async function loadMockup() {
 }
 
 // Отправляет ответ клиента — создаёт подзадачу в Weeek.
-async function sendMockupResponse(taskId, status, comment = '', mockupName = '') {
+async function sendMockupResponse(taskId, status, comment = '', mockupName = '', mockupId = '') {
     const tg = window.Telegram?.WebApp;
     const user = tg?.initDataUnsafe?.user;
 
@@ -1542,6 +1542,7 @@ async function sendMockupResponse(taskId, status, comment = '', mockupName = '')
             status,
             comment,
             mockupName,
+            mockupId,
         }),
     });
 

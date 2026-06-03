@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { taskId, telegramId, status, comment, mockupName } = req.body;
+        const { taskId, telegramId, status, comment, mockupName, mockupId } = req.body;
 
         if (!taskId || !telegramId || !status) {
             return res.status(400).json({ error: 'Missing required fields: taskId, telegramId, status' });
@@ -24,16 +24,20 @@ export default async function handler(req, res) {
         }
 
         const fileName = mockupName || 'макет';
+        const mockupMarkers = [
+            mockupId ? `[mockup-attachment-id:${mockupId}]` : '',
+            mockupName ? `[mockup-file:${mockupName}]` : '',
+        ].filter(Boolean).join('\n');
 
         let title, description;
 
         if (status === 'approved') {
             title = `✅ Согласован: ${fileName}`;
-            description = `Клиент согласовал макет.`;
+            description = `Клиент согласовал макет.${mockupMarkers ? `\n\n${mockupMarkers}` : ''}`;
         } else if (status === 'revision') {
             const revisionText = comment?.trim() || 'Без комментария';
             title = `🔄 Правки: ${fileName}`;
-            description = `Клиент запросил правки:\n\n${revisionText}`;
+            description = `Клиент запросил правки:\n\n${revisionText}${mockupMarkers ? `\n\n${mockupMarkers}` : ''}`;
         } else {
             return res.status(400).json({ error: 'Invalid status. Use "approved" or "revision"' });
         }

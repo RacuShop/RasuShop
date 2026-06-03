@@ -1,7 +1,7 @@
 /**
  * Vercel serverless function: Get mockup endpoint
  * Finds the client's task in Weeek by Telegram ID
- * Returns the latest image attachment (mockup) if present
+ * Returns the first image attachment that does not have a client response yet
  *
  * Environment variable required: WEEEK_API_TOKEN
  */
@@ -15,6 +15,12 @@ export default async function handler(req, res) {
     try {
 
         const { telegramId } = req.query;
+        const ignoredMockupIds = new Set(
+            []
+                .concat(req.query.ignoreMockupId || [])
+                .filter(Boolean)
+                .map(id => String(id))
+        );
 
         if (!telegramId) {
             return res.status(400).json({ error: 'Missing telegramId parameter' });
@@ -83,6 +89,16 @@ export default async function handler(req, res) {
         const task = taskData.task;
 
         const attachments = task.attachments || [];
+        const subtasks = [
+            ...(Array.isArray(task.subTasks) ? task.subTasks : []),
+            ...(Array.isArray(task.subtasks) ? task.subtasks : []),
+            ...(Array.isArray(task.children) ? task.children : []),
+            ...(Array.isArray(task.childTasks) ? task.childTasks : []),
+            ...tasks.filter(item => Number(item.parentId) === Number(task.id)),
+        ];
+        const responseText = subtasks
+            .map(item => `${item.title || ''}\n${item.description || ''}`)
+            .join('\n');
 
         // Filter only image attachments
         const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
@@ -91,20 +107,38 @@ export default async function handler(req, res) {
             return imageExtensions.some(ext => name.endsWith(ext));
         });
 
-        if (imageAttachments.length === 0) {
+        const pendingImages = imageAttachments.filter(att => {
+            const id = String(att.id || '');
+            const name = String(att.name || '');
+            const idMarker = id ? `[mockup-attachment-id:${id}]` : '';
+            const nameMarker = name ? `[mockup-file:${name}]` : '';
+            const oldApprovedTitle = name ? `Согласован: ${name}` : '';
+            const oldRevisionTitle = name ? `Правки: ${name}` : '';
+            return !(
+                (id && ignoredMockupIds.has(id)) ||
+                (idMarker && responseText.includes(idMarker)) ||
+                (nameMarker && responseText.includes(nameMarker)) ||
+                (oldApprovedTitle && responseText.includes(oldApprovedTitle)) ||
+                (oldRevisionTitle && responseText.includes(oldRevisionTitle))
+            );
+        });
+
+        if (pendingImages.length === 0) {
             return res.status(200).json({ hasMockup: false });
         }
 
-        // Return the latest image (last added)
-        const latestImage = imageAttachments[imageAttachments.length - 1];
+        // Return the first pending image so several mockups are approved in order.
+        const nextImage = pendingImages[0];
 
         return res.status(200).json({
             hasMockup: true,
             mockup: {
-                id: latestImage.id,
-                name: latestImage.name,
-                url: latestImage.url,
+                id: nextImage.id,
+                name: nextImage.name,
+                url: nextImage.url,
                 taskId: task.id,
+                total: imageAttachments.length,
+                remaining: pendingImages.length,
             },
         });
 
