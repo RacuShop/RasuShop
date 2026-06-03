@@ -38,7 +38,7 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Invalid status. Use "approved" or "revision"' });
         }
 
-        // Создаём подзадачу под задачей заказа
+        // Create a child task without adding it to a board as a separate card.
         const weeekResponse = await fetch('https://api.weeek.net/public/v1/tm/tasks', {
             method: 'POST',
             headers: {
@@ -49,8 +49,7 @@ export default async function handler(req, res) {
                 title,
                 description,
                 parentId: Number(taskId),
-                projectId: 2,
-                boardId: 2,
+                locations: [],
             }),
         });
 

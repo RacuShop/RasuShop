@@ -1434,6 +1434,7 @@ async function loadMockup() {
                 <textarea id="mockup-revision-text" class="survey-textarea mockup-revision-textarea" maxlength="1000" placeholder="Опишите ваши правки..."></textarea>
             </div>
             <button class="mockup-send-btn primary-btn" id="mockup-send-btn" data-task-id="${taskId}" disabled>Отправить</button>
+            <div id="mockup-error-msg" class="mockup-error-msg" aria-live="polite"></div>
             <div id="mockup-done-msg" class="mockup-done-msg" style="display:none;"></div>
         `;
 
@@ -1443,6 +1444,13 @@ async function loadMockup() {
         const revisionBtn = container.querySelector('#mockup-choice-revision');
         const sendBtn = container.querySelector('#mockup-send-btn');
         const revisionWrap = container.querySelector('#mockup-revision-wrap');
+        const errorMsg = container.querySelector('#mockup-error-msg');
+
+        const showMockupError = (message = '') => {
+            if (!errorMsg) return;
+            errorMsg.textContent = message;
+            errorMsg.classList.toggle('mockup-error-visible', Boolean(message));
+        };
 
         // По умолчанию скрываем textarea через класс
         revisionWrap.classList.add('mockup-revision-hidden');
@@ -1453,6 +1461,7 @@ async function loadMockup() {
             revisionBtn.classList.remove('mockup-choice-active');
             revisionWrap.classList.add('mockup-revision-hidden');
             sendBtn.disabled = false;
+            showMockupError();
         });
 
         revisionBtn.addEventListener('click', () => {
@@ -1461,6 +1470,7 @@ async function loadMockup() {
             approveBtn.classList.remove('mockup-choice-active');
             revisionWrap.classList.remove('mockup-revision-hidden');
             sendBtn.disabled = false;
+            showMockupError();
             // небольшая задержка чтобы элемент успел стать видимым
             setTimeout(() => {
                 const ta = container.querySelector('#mockup-revision-text');
@@ -1475,11 +1485,13 @@ async function loadMockup() {
                 const ta = container.querySelector('#mockup-revision-text');
                 const comment = ta ? ta.value.trim() : '';
                 if (!comment) {
-                    alert('Пожалуйста, опишите ваши правки');
+                    showMockupError('Пожалуйста, опишите ваши правки');
+                    if (ta) ta.focus();
                     return;
                 }
             }
 
+            showMockupError();
             sendBtn.disabled = true;
             sendBtn.textContent = 'Отправка...';
 
@@ -1506,7 +1518,7 @@ async function loadMockup() {
             } catch (err) {
                 sendBtn.disabled = false;
                 sendBtn.textContent = 'Отправить';
-                alert('Ошибка: ' + err.message);
+                showMockupError('Ошибка: ' + err.message);
             }
         });
 

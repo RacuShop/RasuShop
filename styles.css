@@ -1304,6 +1304,18 @@ body {
     cursor: not-allowed;
 }
 
+.mockup-error-msg {
+    display: none;
+    margin-top: var(--space-xs);
+    font-size: 0.85rem;
+    line-height: 1.35;
+    color: #b3261e;
+}
+
+.mockup-error-msg.mockup-error-visible {
+    display: block;
+}
+
 .mockup-done-msg {
     font-size: 0.95rem;
     font-weight: 500;
