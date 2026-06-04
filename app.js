@@ -1194,14 +1194,17 @@ function renderCart() {
 
     // Show list and total only if there are items
     if (state.cart.length > 0) {
-        content.appendChild(createBlock(list));
 
         // total display
         const totalDiv = document.createElement('div');
         totalDiv.id = 'cart-total';
         totalDiv.style.fontWeight = 'bold';
         totalDiv.textContent = `Итого: ${calculateTotal()} ₽`;
-        content.appendChild(createBlock(totalDiv));
+        const itemsSummary = document.createElement('div');
+        itemsSummary.id = 'cart-items-summary';
+        itemsSummary.appendChild(list);
+        itemsSummary.appendChild(totalDiv);
+        content.appendChild(createBlock(itemsSummary));
         
         // Contract block
         const contractContainer = document.createElement('div');
