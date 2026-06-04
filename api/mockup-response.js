@@ -28,6 +28,13 @@ export default async function handler(req, res) {
             mockupId ? `[mockup-attachment-id:${mockupId}]` : '',
             mockupName ? `[mockup-file:${mockupName}]` : '',
         ].filter(Boolean).join('\n');
+        const completedMockupLine = [
+            '-',
+            mockupId ? `id:${mockupId}` : '',
+            mockupName ? `file:${mockupName}` : '',
+            `status:${status}`,
+            `date:${new Date().toISOString()}`,
+        ].filter(Boolean).join(' ');
 
         let title, description;
 
@@ -73,9 +80,70 @@ export default async function handler(req, res) {
             });
         }
 
+        const parentTaskResponse = await fetch(`https://api.weeek.net/public/v1/tm/tasks/${taskId}`, {
+            method: 'GET',
+            headers: {
+                Authorization: `Bearer ${process.env.WEEEK_API_TOKEN}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!parentTaskResponse.ok) {
+            console.error('Weeek parent task fetch error:', parentTaskResponse.status);
+            return res.status(200).json({
+                success: true,
+                subtaskId: responseData?.task?.id,
+                registryUpdated: false,
+            });
+        }
+
+        const parentTaskData = await parentTaskResponse.json();
+        const parentTask = parentTaskData.task || {};
+        const currentDescription = parentTask.description || '';
+        let nextDescription = currentDescription;
+
+        if (mockupMarkers && !currentDescription.includes(mockupMarkers)) {
+            const registryTitle = '\n\nОбработанные макеты:\n';
+            if (currentDescription.includes('Обработанные макеты:')) {
+                nextDescription = `${currentDescription}\n${completedMockupLine}\n${mockupMarkers}`;
+            } else {
+                nextDescription = `${currentDescription}${registryTitle}${completedMockupLine}\n${mockupMarkers}`;
+            }
+
+            const updateTaskResponse = await fetch(`https://api.weeek.net/public/v1/tm/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: {
+                    Authorization: `Bearer ${process.env.WEEEK_API_TOKEN}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: parentTask.title,
+                    description: nextDescription,
+                }),
+            });
+
+            if (!updateTaskResponse.ok) {
+                let updateDetails = {};
+                try {
+                    const text = await updateTaskResponse.text();
+                    updateDetails = text ? JSON.parse(text) : {};
+                } catch (e) {
+                    updateDetails = {};
+                }
+                console.error('Weeek parent task update error:', updateTaskResponse.status, updateDetails);
+                return res.status(200).json({
+                    success: true,
+                    subtaskId: responseData?.task?.id,
+                    registryUpdated: false,
+                    details: updateDetails,
+                });
+            }
+        }
+
         return res.status(200).json({
             success: true,
             subtaskId: responseData?.task?.id,
+            registryUpdated: true,
         });
 
     } catch (error) {

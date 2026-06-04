@@ -96,8 +96,11 @@ export default async function handler(req, res) {
             ...(Array.isArray(task.childTasks) ? task.childTasks : []),
             ...tasks.filter(item => Number(item.parentId) === Number(task.id)),
         ];
-        const responseText = subtasks
-            .map(item => `${item.title || ''}\n${item.description || ''}`)
+        const responseText = [
+            task.description || '',
+            ...subtasks
+                .map(item => `${item.title || ''}\n${item.description || ''}`),
+        ]
             .join('\n');
 
         // Filter only image attachments
