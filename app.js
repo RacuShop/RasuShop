@@ -3,24 +3,60 @@ const tg = (typeof window !== 'undefined' && window.Telegram) ? window.Telegram.
 
 //Принудительно применяет кастомные цвета через CSS, чтобы переопределить тему Telegram и сохранить единый стиль приложения.
 function applyThemeOverride() {
-    // Telegram WebApp can inject its own theme styles. We keep our design stable by forcing
-    // the colors we use (via CSS vars) and adding an important override stylesheet.
     const existing = document.getElementById('tg-theme-override');
-    if (existing) return;
-
-    const style = document.createElement('style');
+    const style = existing || document.createElement('style');
     style.id = 'tg-theme-override';
     style.textContent = `
-        body {
-            background: var(--color-background) !important;
-            color: var(--color-text) !important;
+        :root {
+            color-scheme: light !important;
+            --tg-color-scheme: light !important;
+            --tg-theme-bg-color: #f5f6f8 !important;
+            --tg-theme-secondary-bg-color: #ffffff !important;
+            --tg-theme-text-color: #111318 !important;
+            --tg-theme-hint-color: #6b7280 !important;
+            --tg-theme-link-color: #1212af !important;
+            --tg-theme-button-color: #1212af !important;
+            --tg-theme-button-text-color: #ffffff !important;
         }
-        #app-header, #bottom-nav {
-            background: var(--color-primary) !important;
-            color: var(--color-text) !important;
+        html,
+        body {
+            background: var(--color-bg-page) !important;
+            color: var(--color-text-primary) !important;
+        }
+        body,
+        button,
+        input,
+        textarea,
+        select {
+            font-family: var(--font-main) !important;
+        }
+        #app-header {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%) !important;
+            color: var(--color-text-inverse) !important;
+        }
+        #bottom-nav {
+            background: rgba(255, 255, 255, 0.92) !important;
+            color: var(--color-text-primary) !important;
+        }
+        .modal,
+        .card,
+        .cart-item,
+        .account-card,
+        .profile-card,
+        #cart-info,
+        #cart-contract {
+            color: var(--color-text-primary) !important;
         }
     `;
-    document.head.appendChild(style);
+    if (!existing) document.head.appendChild(style);
+
+    if (!tg) return;
+
+    try { tg.ready(); } catch (error) { console.warn('Telegram ready failed', error); }
+    try { tg.expand(); } catch (error) { console.warn('Telegram expand failed', error); }
+    try { tg.setHeaderColor('#1212af'); } catch (error) { console.warn('Telegram header color failed', error); }
+    try { tg.setBackgroundColor('#f5f6f8'); } catch (error) { console.warn('Telegram background color failed', error); }
+    try { tg.setBottomBarColor?.('#ffffff'); } catch (error) { console.warn('Telegram bottom bar color failed', error); }
 }
 
 // Получает данные пользователя из Telegram (имя, ID, фото и т.д.) после запуска WebApp.
@@ -1830,6 +1866,11 @@ on(document, 'click', '#pay-button', async (e) => {
 
 // initialization
 (() => {
+    applyThemeOverride();
+    if (tg?.onEvent) {
+        tg.onEvent('themeChanged', applyThemeOverride);
+    }
+
     // restore cart immediately (localStorage API is synchronous)
     loadCart();
     if (!state.activeCategory) state.activeCategory = 'all';
