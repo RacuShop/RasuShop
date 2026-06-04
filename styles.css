@@ -38,26 +38,26 @@
     --font-main: Inter, "SF Pro Text", "SF Pro Display", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
 
     /* Font sizes */
-    --font-size-header: 40px;
-    --font-size-title-1: 34px;
-    --font-size-title-2: 26px;
-    --font-size-title-3: 22px;
-    --font-size-title-4: 19px;
-    --font-size-body-0: 17px;
-    --font-size-body-1: 16px;
-    --font-size-body-2: 14px;
+    --font-size-header: 34px;
+    --font-size-title-1: 29px;
+    --font-size-title-2: 23px;
+    --font-size-title-3: 19px;
+    --font-size-title-4: 17px;
+    --font-size-body-0: 16px;
+    --font-size-body-1: 15px;
+    --font-size-body-2: 13px;
     --font-size-caption-1: 12px;
     --font-size-caption-2: 11px;
 
     /* Line heights */
-    --line-height-header: 49px;
-    --line-height-title-1: 41px;
-    --line-height-title-2: 31px;
-    --line-height-title-3: 30px;
-    --line-height-title-4: 26px;
-    --line-height-body-0: 24px;
-    --line-height-body-1: 23px;
-    --line-height-body-2: 19px;
+    --line-height-header: 42px;
+    --line-height-title-1: 36px;
+    --line-height-title-2: 28px;
+    --line-height-title-3: 25px;
+    --line-height-title-4: 23px;
+    --line-height-body-0: 22px;
+    --line-height-body-1: 21px;
+    --line-height-body-2: 18px;
     --line-height-caption-1: 15px;
     --line-height-caption-2: 13px;
 
@@ -79,17 +79,17 @@
 
     /* Spacing, 4px grid */
     --space-1: 4px;
-    --space-2: 8px;
-    --space-3: 12px;
-    --space-4: 16px;
-    --space-5: 20px;
-    --space-6: 24px;
-    --space-7: 28px;
-    --space-8: 32px;
-    --space-10: 40px;
-    --space-12: 48px;
-    --space-14: 56px;
-    --space-16: 64px;
+    --space-2: 7px;
+    --space-3: 10px;
+    --space-4: 14px;
+    --space-5: 17px;
+    --space-6: 20px;
+    --space-7: 24px;
+    --space-8: 27px;
+    --space-10: 34px;
+    --space-12: 41px;
+    --space-14: 48px;
+    --space-16: 54px;
 
     /* Shadows */
     --shadow-xs: 0 1px 1px rgba(15, 23, 42, 0.045);
@@ -104,9 +104,9 @@
     --transition-collapse: 400ms ease;
 
     /* App layout */
-    --header-height: 92px;
-    --bottom-nav-height: 72px;
-    --page-padding: 16px;
+    --header-height: 78px;
+    --bottom-nav-height: 62px;
+    --page-padding: 14px;
     --max-content-width: 1560px;
     --panel-content-width: 880px;
     --app-header-total: calc(var(--header-height) + env(safe-area-inset-top));
@@ -412,7 +412,7 @@ img {
     max-width: 100%;
     color: var(--color-text-primary);
     font-size: var(--font-size-body-2);
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-medium);
     line-height: var(--line-height-body-2);
     white-space: normal;
     overflow-wrap: anywhere;
@@ -422,14 +422,14 @@ img {
     margin-top: var(--space-1);
     color: var(--color-primary);
     font-size: var(--font-size-caption-1);
-    font-weight: var(--font-weight-heavy);
+    font-weight: var(--font-weight-bold);
     line-height: var(--line-height-caption-1);
 }
 
 .details-btn {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
     align-self: start;
     justify-self: end;
     border-radius: var(--radius-sm);
@@ -446,8 +446,8 @@ img {
 }
 
 .details-btn svg {
-    width: 17px;
-    height: 17px;
+    width: 15px;
+    height: 15px;
     fill: currentColor;
     pointer-events: none;
 }
@@ -494,8 +494,8 @@ img {
 }
 
 .nav-btn .nav-icon {
-    width: 25px;
-    height: 25px;
+    width: 22px;
+    height: 22px;
     flex-shrink: 0;
     fill: currentColor;
     transition:
@@ -590,7 +590,7 @@ img {
 .cart-survey-modal h2 {
     color: var(--color-text-primary);
     font-size: var(--font-size-title-3);
-    font-weight: var(--font-weight-heavy);
+    font-weight: var(--font-weight-bold);
     line-height: var(--line-height-title-3);
 }
 
@@ -634,7 +634,7 @@ img {
 .survey-save-btn,
 #add-to-cart-final,
 .mockup-send-btn {
-    min-height: 52px;
+    min-height: 46px;
     width: 100%;
     padding: 0 var(--space-5);
     border-radius: var(--radius-md);
@@ -700,7 +700,7 @@ img {
 
 #cart-info strong {
     color: var(--color-text-primary);
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-medium);
 }
 
 #cart-list {
@@ -721,7 +721,7 @@ img {
 .cart-item {
     position: relative;
     display: grid;
-    grid-template-columns: 104px minmax(0, 1fr) 42px;
+    grid-template-columns: 92px minmax(0, 1fr) 36px;
     align-items: center;
     gap: var(--space-3);
     padding: var(--space-3);
@@ -732,8 +732,8 @@ img {
 }
 
 .cart-item img {
-    width: 104px;
-    height: 78px;
+    width: 92px;
+    height: 69px;
     object-fit: cover;
     border-radius: var(--radius-lg);
     background: var(--color-bg-surface-muted);
@@ -749,7 +749,7 @@ img {
 .cart-item-title {
     color: var(--color-text-primary);
     font-size: var(--font-size-body-1);
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-medium);
     line-height: var(--line-height-body-1);
     white-space: nowrap;
     overflow: hidden;
@@ -759,13 +759,13 @@ img {
 .cart-item-price {
     color: var(--color-primary);
     font-size: var(--font-size-body-2);
-    font-weight: var(--font-weight-heavy);
+    font-weight: var(--font-weight-bold);
     line-height: var(--line-height-body-2);
 }
 
 .remove-btn {
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
     border-radius: var(--radius-sm);
     display: inline-flex;
     align-items: center;
@@ -788,7 +788,7 @@ img {
 
 .survey-btn {
     align-self: flex-start;
-    min-height: 34px;
+    min-height: 30px;
     max-width: 100%;
     margin-top: var(--space-2);
     padding: 0 var(--space-3);
@@ -823,7 +823,7 @@ img {
     color: var(--color-text-primary);
     box-shadow: none;
     font-size: var(--font-size-title-4);
-    font-weight: var(--font-weight-heavy) !important;
+    font-weight: var(--font-weight-bold) !important;
     line-height: var(--line-height-title-4);
 }
 
@@ -944,7 +944,7 @@ img {
 .account-name {
     color: var(--color-text-primary);
     font-size: var(--font-size-title-4);
-    font-weight: var(--font-weight-heavy);
+    font-weight: var(--font-weight-bold);
     line-height: var(--line-height-title-4);
     white-space: nowrap;
     overflow: hidden;
@@ -969,7 +969,7 @@ img {
     margin-bottom: var(--space-3);
     color: var(--color-text-primary);
     font-size: var(--font-size-title-4);
-    font-weight: var(--font-weight-heavy);
+    font-weight: var(--font-weight-bold);
     line-height: var(--line-height-title-4);
 }
 
@@ -983,7 +983,7 @@ img {
 .status-pill {
     display: inline-flex;
     align-items: center;
-    min-height: 34px;
+    min-height: 30px;
     padding: 0 var(--space-4);
     border-radius: var(--radius-sm);
     background: var(--color-primary-soft);
@@ -1011,7 +1011,7 @@ img {
 .question-text {
     color: var(--color-text-primary);
     font-size: var(--font-size-body-0);
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-medium);
     line-height: var(--line-height-body-0);
 }
 
@@ -1128,7 +1128,7 @@ img {
 
 .answer-btn {
     width: 100%;
-    min-height: 54px;
+    min-height: 46px;
     padding: var(--space-4);
     border-radius: var(--radius-md);
     background: var(--color-bg-control);
@@ -1151,7 +1151,7 @@ img {
 }
 
 #prev-question {
-    min-height: 48px;
+    min-height: 42px;
     padding: 0 var(--space-5);
     border-radius: var(--radius-md);
     background: var(--color-bg-control);
@@ -1172,7 +1172,7 @@ img {
     margin-left: auto;
     color: var(--color-primary);
     font-size: var(--font-size-body-1);
-    font-weight: var(--font-weight-heavy);
+    font-weight: var(--font-weight-bold);
     line-height: var(--line-height-body-1);
     text-align: right;
 }
@@ -1189,7 +1189,7 @@ img {
     background: var(--color-primary-soft);
     color: var(--color-primary);
     font-size: var(--font-size-title-4);
-    font-weight: var(--font-weight-heavy);
+    font-weight: var(--font-weight-bold);
     line-height: var(--line-height-title-4);
 }
 
@@ -1228,7 +1228,7 @@ img {
 }
 
 .profile-button-group button {
-    min-height: 52px;
+    min-height: 46px;
 }
 
 .profile-upload-btn,
@@ -1238,8 +1238,8 @@ img {
 }
 
 .profile-add-btn {
-    width: 52px;
-    flex: 0 0 52px;
+    width: 46px;
+    flex: 0 0 46px;
     padding: 0;
     font-size: var(--font-size-title-4);
 }
@@ -1559,13 +1559,13 @@ img {
 
 @media (min-width: 680px) {
     :root {
-        --page-padding: 20px;
-        --header-height: 98px;
+        --page-padding: 17px;
+        --header-height: 84px;
     }
 
     #app-logo {
-        height: 38px;
-        width: 210px;
+        height: 32px;
+        width: 180px;
     }
 
     #catalog {
@@ -1585,10 +1585,10 @@ img {
 
 @media (min-width: 1040px) {
     :root {
-        --page-padding: 28px;
-        --header-height: 104px;
-        --bottom-nav-height: 78px;
-        --panel-content-width: 960px;
+        --page-padding: 24px;
+        --header-height: 88px;
+        --bottom-nav-height: 66px;
+        --panel-content-width: 900px;
     }
 
     #catalog {
@@ -1603,10 +1603,10 @@ img {
 
 @media (min-width: 1600px) {
     :root {
-        --max-content-width: 1680px;
-        --panel-content-width: 1040px;
-        --page-padding: 32px;
-        --header-height: 112px;
+        --max-content-width: 1560px;
+        --panel-content-width: 960px;
+        --page-padding: 27px;
+        --header-height: 96px;
     }
 
     #catalog {
@@ -1617,9 +1617,9 @@ img {
 
 @media (max-width: 560px) {
     :root {
-        --header-height: 82px;
-        --bottom-nav-height: 68px;
-        --page-padding: 12px;
+        --header-height: 70px;
+        --bottom-nav-height: 58px;
+        --page-padding: 10px;
     }
 
     body {
@@ -1627,8 +1627,8 @@ img {
     }
 
     #app-logo {
-        height: 30px;
-        width: 156px;
+        height: 26px;
+        width: 136px;
     }
 
     #category-filter {
@@ -1666,15 +1666,15 @@ img {
     }
 
     .details-btn {
-        width: 34px;
-        height: 34px;
-        min-width: 34px;
+        width: 30px;
+        height: 30px;
+        min-width: 30px;
         border-radius: var(--radius-sm);
     }
 
     .details-btn svg {
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
     }
 
     #bottom-nav {
@@ -1704,19 +1704,19 @@ img {
     }
 
     .cart-item {
-        grid-template-columns: 82px minmax(0, 1fr) 36px;
+        grid-template-columns: 76px minmax(0, 1fr) 32px;
         gap: var(--space-2);
     }
 
     .cart-item img {
-        width: 82px;
-        height: 66px;
+        width: 76px;
+        height: 60px;
         border-radius: var(--radius-md);
     }
 
     .remove-btn {
-        width: 34px;
-        height: 34px;
+        width: 30px;
+        height: 30px;
     }
 
     .survey-footer,
@@ -1754,18 +1754,18 @@ img {
     }
 
     .details-btn {
-        width: 32px;
-        height: 32px;
-        min-width: 32px;
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
     }
 
     .cart-item {
-        grid-template-columns: 72px minmax(0, 1fr) 32px;
+        grid-template-columns: 68px minmax(0, 1fr) 30px;
     }
 
     .cart-item img {
-        width: 72px;
-        height: 58px;
+        width: 68px;
+        height: 54px;
     }
 
     .account-top {
