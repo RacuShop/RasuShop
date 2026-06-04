@@ -673,6 +673,8 @@ body {
 }
 
 .survey-textarea {
+    position: relative;
+    z-index: 1;
     width: 100%;
     min-height: 90px;
     max-height: 200px;
@@ -681,6 +683,15 @@ body {
     border-radius: var(--radius-md);
     resize: vertical;
     font-family: inherit;
+    font-size: 16px;
+    line-height: 1.4;
+    pointer-events: auto;
+    user-select: text;
+    -webkit-user-select: text;
+    touch-action: manipulation;
+    caret-color: var(--color-text);
+    background: white;
+    color: var(--color-text);
 }
 
 .survey-footer {

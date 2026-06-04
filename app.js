@@ -130,6 +130,16 @@ function on(parent, event, selector, handler) {
     });
 }
 
+function focusTextInput(el) {
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    const valueLength = el.value.length;
+    if (typeof el.setSelectionRange === 'function') {
+        el.setSelectionRange(valueLength, valueLength);
+    }
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 250);
+}
+
 // Универсальная обёртка для блоков с адаптивными отступами
 function createBlock(element) {
     const block = document.createElement('div');
@@ -1227,7 +1237,7 @@ function openCartItemSurveyModal(item) {
                 <div class="survey-section">
                     <div class="question-text">${config.question}</div>
                     ${config.hint ? `<div class="question-hint" style="color: #636363; font-size: 0.9rem; margin-bottom: 8px;">${config.hint}</div>` : ''}
-                    <textarea id="survey-textarea" class="survey-textarea" maxlength="${config.maxLength}" placeholder="${config.placeholder}">${item.surveyAnswers[0]?.answer || ''}</textarea>
+                    <textarea id="survey-textarea" class="survey-textarea" maxlength="${config.maxLength}" placeholder="${config.placeholder}" autocomplete="off" autocapitalize="sentences" spellcheck="true">${item.surveyAnswers[0]?.answer || ''}</textarea>
                     <div class="char-counter" style="font-size: 0.8rem; color: #636363; text-align: right; margin-top: 4px;">
                         <span id="char-count">${(item.surveyAnswers[0]?.answer || '').length}</span>/${config.maxLength}
                     </div>
@@ -1243,9 +1253,16 @@ function openCartItemSurveyModal(item) {
     if (config.type === 'textarea') {
         const textarea = content.querySelector('#survey-textarea');
         const counter = content.querySelector('#char-count');
+        const section = textarea.closest('.survey-section');
 
         textarea.addEventListener('input', () => {
             counter.textContent = textarea.value.length;
+        });
+
+        textarea.addEventListener('focus', () => focusTextInput(textarea));
+        section?.addEventListener('pointerdown', e => {
+            if (e.target.closest('button')) return;
+            focusTextInput(textarea);
         });
     }
 
@@ -1255,6 +1272,10 @@ function openCartItemSurveyModal(item) {
     });
 
     overlay.classList.remove('hidden');
+
+    if (config.type === 'textarea') {
+        setTimeout(() => focusTextInput(content.querySelector('#survey-textarea')), 80);
+    }
 }
 
 // Сохраняет текстовый ответ из опроса в корзине.
@@ -1603,7 +1624,6 @@ on(document, 'click', '#add-to-cart', e => {
     const product = products.find(p => p.id === productId);
     console.log('FOUND PRODUCT:', product);
     if (product) {
-        alert(`${product.title} добавлен в корзину!`);
         switchScreen('cart');
     }
 });
@@ -1630,8 +1650,6 @@ on(document, 'click', '#add-to-cart-final', e => {
 
     // Close modal and show success
     closeModal({ save: false });
-    alert(`${product.title} добавлен в корзину!`);
-
     // Switch to cart view
     switchScreen('cart');
 });
