@@ -299,14 +299,14 @@ img {
 
 #category-filter {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: var(--space-2);
     width: 100%;
-    max-width: var(--max-content-width);
+    max-width: min(100%, 760px);
     margin: 0 auto;
-    padding: var(--space-4) var(--page-padding) var(--space-3);
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-padding-inline: var(--page-padding);
+    padding: var(--space-3) var(--page-padding) var(--space-2);
+    overflow: visible;
     background: transparent;
 }
 
@@ -314,22 +314,21 @@ img {
     display: none;
 }
 
-#category-filter::-webkit-scrollbar {
-    display: none;
-}
-
 #category-filter button {
-    min-height: 38px;
-    flex: 0 0 auto;
-    padding: 0 var(--space-4);
+    min-width: clamp(62px, 12vw, 82px);
+    min-height: 34px;
+    flex: 0 1 auto;
+    max-width: 126px;
+    padding: 0 var(--space-3);
     border: 1px solid transparent;
     border-radius: var(--radius-sm);
     background: var(--color-bg-surface);
     color: var(--color-text-primary);
     box-shadow: var(--shadow-xs);
-    font-size: var(--font-size-body-2);
+    font-size: var(--font-size-caption-1);
     font-weight: var(--font-weight-bold);
-    line-height: var(--line-height-body-2);
+    line-height: var(--line-height-caption-1);
+    text-align: center;
     white-space: nowrap;
     transition:
         background var(--transition-base),
@@ -358,7 +357,7 @@ img {
     margin: 0 auto;
     padding: var(--space-1) var(--page-padding) var(--space-6);
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(144px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: var(--space-3);
 }
 
@@ -386,7 +385,7 @@ img {
 }
 
 .card-body {
-    min-height: 96px;
+    min-height: 86px;
     padding: var(--space-3);
     display: flex;
     flex: 1;
@@ -397,35 +396,41 @@ img {
 
 .card-header {
     min-width: 0;
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 36px;
     align-items: flex-start;
-    justify-content: space-between;
     gap: var(--space-2);
+    width: 100%;
+}
+
+.card-header > div {
+    min-width: 0;
 }
 
 .card-title {
     max-width: 100%;
     color: var(--color-text-primary);
-    font-size: var(--font-size-body-1);
+    font-size: var(--font-size-body-2);
     font-weight: var(--font-weight-bold);
-    line-height: var(--line-height-body-1);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: var(--line-height-body-2);
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .card-price {
     margin-top: var(--space-1);
     color: var(--color-primary);
-    font-size: var(--font-size-body-2);
+    font-size: var(--font-size-caption-1);
     font-weight: var(--font-weight-heavy);
-    line-height: var(--line-height-body-2);
+    line-height: var(--line-height-caption-1);
 }
 
 .details-btn {
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    align-self: start;
+    justify-self: end;
     border-radius: var(--radius-sm);
     display: inline-flex;
     align-items: center;
@@ -440,8 +445,8 @@ img {
 }
 
 .details-btn svg {
-    width: 20px;
-    height: 20px;
+    width: 17px;
+    height: 17px;
     fill: currentColor;
     pointer-events: none;
 }
@@ -1552,12 +1557,12 @@ img {
     }
 
     #catalog {
-        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(188px, 1fr));
         gap: var(--space-4);
     }
 
     .card-body {
-        min-height: 110px;
+        min-height: 92px;
         padding: var(--space-4);
     }
 
@@ -1575,7 +1580,7 @@ img {
     }
 
     #catalog {
-        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
         gap: var(--space-5);
     }
 
@@ -1593,7 +1598,7 @@ img {
     }
 
     #catalog {
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
         gap: var(--space-6);
     }
 }
@@ -1615,17 +1620,22 @@ img {
     }
 
     #category-filter {
-        padding-top: var(--space-3);
+        max-width: 100%;
+        padding-top: var(--space-2);
         padding-bottom: var(--space-2);
     }
 
     #category-filter button {
-        min-height: 38px;
-        padding: 0 var(--space-4);
+        min-height: 32px;
+        min-width: 52px;
+        max-width: 112px;
+        padding: 0 var(--space-2);
+        font-size: var(--font-size-caption-2);
+        line-height: var(--line-height-caption-2);
     }
 
     #catalog {
-        grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(142px, 1fr));
         gap: var(--space-2);
     }
 
@@ -1634,25 +1644,25 @@ img {
     }
 
     .card-body {
-        min-height: 88px;
-        padding: var(--space-3);
+        min-height: 82px;
+        padding: var(--space-2);
     }
 
     .card-title {
-        font-size: var(--font-size-body-2);
-        line-height: var(--line-height-body-2);
+        font-size: var(--font-size-caption-1);
+        line-height: var(--line-height-caption-1);
     }
 
     .details-btn {
-        width: 38px;
-        height: 38px;
-        min-width: 38px;
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
         border-radius: var(--radius-sm);
     }
 
     .details-btn svg {
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
     }
 
     #bottom-nav {
@@ -1723,18 +1733,18 @@ img {
     }
 
     #catalog {
-        grid-template-columns: repeat(auto-fill, minmax(126px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
     }
 
     .card-body {
-        min-height: 84px;
+        min-height: 78px;
         gap: var(--space-1);
     }
 
     .details-btn {
-        width: 36px;
-        height: 36px;
-        min-width: 36px;
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
     }
 
     .cart-item {
