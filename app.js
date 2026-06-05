@@ -1322,10 +1322,6 @@ function openCartItemSurveyModal(item) {
     });
 
     overlay.classList.remove('hidden');
-
-    if (config.type === 'textarea') {
-        setTimeout(() => focusTextInput(content.querySelector('#survey-textarea')), 80);
-    }
 }
 
 // Сохраняет текстовый ответ из опроса в корзине.
