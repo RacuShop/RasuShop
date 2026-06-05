@@ -1194,6 +1194,7 @@ function renderCart() {
 
     // Show list and total only if there are items
     if (state.cart.length > 0) {
+        const shouldShowUpload = shouldShowFileUploadButton();
 
         // total display
         const totalDiv = document.createElement('div');
@@ -1203,6 +1204,24 @@ function renderCart() {
         const itemsSummary = document.createElement('div');
         itemsSummary.id = 'cart-items-summary';
         itemsSummary.appendChild(list);
+        if (shouldShowUpload) {
+            const uploadSection = document.createElement('div');
+            uploadSection.className = 'upload-files-section';
+            const uploadButton = document.createElement('button');
+            uploadButton.id = 'file-upload-button';
+            uploadButton.className = 'primary-btn';
+            uploadButton.textContent = '\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0444\u0430\u0439\u043b\u044b';
+            const uploadInput = document.createElement('input');
+            uploadInput.type = 'file';
+            uploadInput.id = 'file-upload-input';
+            uploadInput.multiple = true;
+            uploadInput.className = 'hidden-file-input';
+            const uploadedFilesList = document.createElement('div');
+            uploadedFilesList.id = 'uploaded-files-list';
+            uploadedFilesList.className = 'uploaded-files-list';
+            uploadSection.append(uploadButton, uploadInput, uploadedFilesList);
+            itemsSummary.appendChild(uploadSection);
+        }
         itemsSummary.appendChild(totalDiv);
         content.appendChild(createBlock(itemsSummary));
         
@@ -1211,17 +1230,9 @@ function renderCart() {
         contractContainer.id = 'cart-contract';
 
         const allSurveysCompleted = state.cart.every(item => isSurveyCompleteForCartItem(item));
-        const shouldShowUpload = shouldShowFileUploadButton();
         
         const contract = document.createElement('div');
         contract.innerHTML = `
-            ${shouldShowUpload ? `
-                <div class="upload-files-section" style="border-top:1px solid rgba(0,0,0,.15); padding-top:16px; margin-top:16px;">
-                    <button id="file-upload-button" class="primary-btn" style="padding:12px 16px; font-size:0.95rem; width:100%; margin-bottom:12px;">Загрузить файлы</button>
-                    <input type="file" id="file-upload-input" multiple class="hidden-file-input" />
-                    <div id="uploaded-files-list" class="uploaded-files-list"></div>
-                </div>
-            ` : ''}
             <label style="display:flex;align-items:center;gap:8px;margin:16px 0 8px;">
                 <input type="checkbox" id="agree">
                 Я согласен с условиями
@@ -1234,7 +1245,7 @@ function renderCart() {
         content.appendChild(createBlock(contractContainer));
         
         if (shouldShowUpload) {
-            const filesContainer = contract.querySelector('#uploaded-files-list');
+            const filesContainer = itemsSummary.querySelector('#uploaded-files-list');
             renderUploadedFilesList(filesContainer);
             // Добавляем поддержку скролла колесом мыши
             setupHorizontalScrollWheel(filesContainer);
