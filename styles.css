@@ -1230,7 +1230,7 @@ img {
 }
 
 #profile-file-upload-block {
-    padding: var(--space-3) var(--space-5) var(--space-1);
+    padding: var(--space-3) var(--space-5) var(--space-3);
 }
 
 #profile-file-upload-block .profile-card-title {
@@ -1448,7 +1448,7 @@ img {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-2);
-    margin-bottom: 0;
+    margin-bottom: var(--space-2);
 }
 
 .mockup-choice-btn {
