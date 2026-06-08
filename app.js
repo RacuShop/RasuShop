@@ -145,6 +145,12 @@ const SURVEY_CONFIG = {
     }
 };
 
+SURVEY_CONFIG.products = {
+    3: JSON.parse(JSON.stringify(SURVEY_CONFIG.production)),
+    4: JSON.parse(JSON.stringify(SURVEY_CONFIG.production))
+};
+delete SURVEY_CONFIG.production;
+
 let state = {
     screen: 'catalog', // catalog, cart, account, about
     activeCategory: null,
@@ -195,12 +201,15 @@ function calculateTotal() {
 // Survey helper functions
 function getSurveyConfigForProduct(productId) {
     const category = getProductCategory(productId);
+    const productConfig = SURVEY_CONFIG.products?.[productId];
+    if (productConfig) return productConfig;
+    if (category === 'production') return null;
     return SURVEY_CONFIG[category] || null;
 }
 
 function isSurveyRequiredForProduct(productId) {
-    const category = getProductCategory(productId);
-    return category === 'production'; // Only production requires survey before adding to cart
+    const config = getSurveyConfigForProduct(productId);
+    return config?.type === 'buttons';
 }
 
 function isSurveyCompleteForCartItem(item) {
@@ -214,9 +223,22 @@ function isSurveyCompleteForCartItem(item) {
     }
 
     // For button surveys, check if all questions are answered
-    const config = SURVEY_CONFIG[item.category];
+    const config = getSurveyConfigForProduct(item.id);
     if (config && config.type === 'buttons') {
-        return item.surveyAnswers.length === config.questions.length;
+        if (item.surveyAnswers.some(answer => typeof answer.questionIndex !== 'number')) {
+            return item.surveyAnswers.length > 0;
+        }
+
+        const answeredIndexes = item.surveyAnswers
+            .filter(answer => typeof answer.questionIndex === 'number')
+            .map(answer => answer.questionIndex);
+        const lastAnswer = item.surveyAnswers[item.surveyAnswers.length - 1];
+        const lastQuestion = config.questions[lastAnswer?.questionIndex];
+        const lastAnswerConfig = lastQuestion?.answers?.[lastAnswer?.answerIndex];
+        return item.surveyAnswers.length > 0 && (
+            lastAnswerConfig?.nextQuestionIndex === null ||
+            Math.max(...answeredIndexes) >= config.questions.length - 1
+        );
     }
 
     return true;
@@ -701,6 +723,42 @@ function saveCart() {
     }
 }
 
+function getProductionSurveyDraftKey(productId) {
+    return `productionSurveyDraft:${productId}`;
+}
+
+function loadProductionSurveyDraft(productId) {
+    try {
+        const raw = localStorage.getItem(getProductionSurveyDraftKey(productId));
+        if (!raw) return null;
+        const draft = JSON.parse(raw);
+        if (!draft || draft.productId !== productId || !Array.isArray(draft.answers)) return null;
+        return draft;
+    } catch (e) {
+        console.error('Ошибка чтения черновика опроса:', e);
+        return null;
+    }
+}
+
+function saveProductionSurveyDraft() {
+    const survey = state.productionSurvey;
+    if (!survey?.productId) return;
+
+    try {
+        localStorage.setItem(getProductionSurveyDraftKey(survey.productId), JSON.stringify(survey));
+    } catch (e) {
+        console.error('Ошибка записи черновика опроса:', e);
+    }
+}
+
+function clearProductionSurveyDraft(productId) {
+    try {
+        localStorage.removeItem(getProductionSurveyDraftKey(productId));
+    } catch (e) {
+        console.error('Ошибка удаления черновика опроса:', e);
+    }
+}
+
 // Рендер дизайна
 function renderCategoryFilter() {
     const container = $('#category-filter');
@@ -762,6 +820,7 @@ function renderCatalog() {
 // Открывает модальное окно: либо детали товара, либо опрос (если требуется).
 function openModal(product) {
     const overlay = $('#modal-overlay');
+    document.querySelector('.modal')?.classList.remove('production-modal');
     state.modalMode = 'product';
     state.modalItemId = null;
 
@@ -781,6 +840,7 @@ function openModal(product) {
 function openProductionSurveyModal(product) {
     state.modalMode = 'production-survey';
     state.modalItemId = product.id;
+    document.querySelector('.modal')?.classList.add('production-modal');
 
     const overlay = $('#modal-overlay');
     const content = $('#modal-content');
@@ -791,14 +851,27 @@ function openProductionSurveyModal(product) {
         return;
     }
 
+    const draft = loadProductionSurveyDraft(product.id);
+
     // Initialize survey state with branching support
-    state.productionSurvey = {
+    state.productionSurvey = draft || {
         productId: product.id,
         currentQuestionIndex: 0,
         answers: [],
         totalExtraPrice: 0,
-        questionPath: [0]
+        questionPath: [0],
+        isComplete: false
     };
+
+    if (!Array.isArray(state.productionSurvey.questionPath) || state.productionSurvey.questionPath.length === 0) {
+        state.productionSurvey.questionPath = [state.productionSurvey.currentQuestionIndex || 0];
+    }
+
+    if (state.productionSurvey.isComplete) {
+        finishProductionSurvey();
+        overlay.classList.remove('hidden');
+        return;
+    }
 
     renderProductionSurveyQuestion();
     overlay.classList.remove('hidden');
@@ -810,27 +883,35 @@ function renderProductionSurveyQuestion() {
     const product = products.find(p => p.id === survey.productId);
     const config = getSurveyConfigForProduct(survey.productId);
     const question = config.questions[survey.currentQuestionIndex];
+    const selectedAnswer = survey.answers[survey.currentQuestionIndex];
+    const hasSelectedAnswer = typeof selectedAnswer?.answerIndex === 'number';
 
     content.innerHTML = `
         <div class="production-survey-modal">
-            <div class="survey-progress">
-                Вопрос ${survey.questionPath.length}
+            <div class="survey-topbar">
+                <div class="survey-progress">
+                    ${product.title} &middot; &#1042;&#1086;&#1087;&#1088;&#1086;&#1089; ${survey.questionPath.length}
+                </div>
             </div>
-            <h2>${product.title}</h2>
+            <div class="survey-image-frame">
+                <img src="${product.img}" alt="${product.title}" />
+            </div>
             <div class="survey-question">
                 <div class="question-text">${question.question}</div>
                 <div class="answer-buttons">
                     ${question.answers.map((answer, index) => `
-                        <button class="answer-btn" data-index="${index}" data-price="${answer.price}">
+                        <button class="answer-btn ${selectedAnswer?.answerIndex === index ? 'selected' : ''}" data-index="${index}" data-price="${answer.price}">
                             ${answer.text}${answer.price > 0 ? ` (+${answer.price}₽)` : ''}
                         </button>
                     `).join('')}
                 </div>
             </div>
             <div class="survey-footer">
-                ${survey.questionPath.length > 1 ? '<button id="prev-question">Назад</button>' : ''}
-                <div class="price-info">
-                    Итого: ${(parsePrice(product.price) + survey.totalExtraPrice)}₽
+                <div class="survey-footer-left">
+                    ${survey.questionPath.length > 1 ? '<button id="prev-question">&#1053;&#1072;&#1079;&#1072;&#1076;</button>' : ''}
+                </div>
+                <div class="survey-footer-right">
+                    <button id="next-question" class="primary-btn" ${hasSelectedAnswer ? '' : 'disabled'}>&#1044;&#1072;&#1083;&#1077;&#1077;</button>
                 </div>
             </div>
         </div>
@@ -847,6 +928,8 @@ function renderProductionSurveyQuestion() {
     if (content.querySelector('#prev-question')) {
         content.querySelector('#prev-question').addEventListener('click', goToPreviousQuestion);
     }
+
+    content.querySelector('#next-question')?.addEventListener('click', goToNextQuestion);
 }
 
 function selectProductionSurveyAnswer(answerIndex, extraPrice) {
@@ -854,17 +937,39 @@ function selectProductionSurveyAnswer(answerIndex, extraPrice) {
     const config = getSurveyConfigForProduct(survey.productId);
     const question = config.questions[survey.currentQuestionIndex];
     const answer = question.answers[answerIndex];
+    const previousAnswerIndex = survey.answers[survey.currentQuestionIndex]?.answerIndex;
+    const pathIndex = survey.questionPath.lastIndexOf(survey.currentQuestionIndex);
 
     // Save answer for the current question index
     survey.answers[survey.currentQuestionIndex] = {
+        questionIndex: survey.currentQuestionIndex,
         question: question.question,
         answer: answer.text,
+        answerIndex: answerIndex,
         extraPrice: extraPrice,
-        autoAddProductId: answer.autoAddProductId || null
+        autoAddProductId: answer.autoAddProductId || null,
+        nextQuestionIndex: typeof answer.nextQuestionIndex !== 'undefined' ? answer.nextQuestionIndex : undefined
     };
+
+    if (previousAnswerIndex !== answerIndex && pathIndex >= 0) {
+        const retainedPath = survey.questionPath.slice(0, pathIndex + 1);
+        const retainedIndexes = new Set(retainedPath);
+        survey.questionPath = retainedPath;
+        survey.answers = survey.answers.map((ans, index) => retainedIndexes.has(index) ? ans : undefined);
+    }
 
     // Update total price
     survey.totalExtraPrice = survey.answers.reduce((sum, ans) => sum + (ans?.extraPrice || 0), 0);
+    survey.isComplete = false;
+    saveProductionSurveyDraft();
+    renderProductionSurveyQuestion();
+}
+
+function goToNextQuestion() {
+    const survey = state.productionSurvey;
+    const config = getSurveyConfigForProduct(survey.productId);
+    const answer = survey.answers[survey.currentQuestionIndex];
+    if (!answer) return;
 
     // Determine next question based on branching configuration
     let nextIndex = typeof answer.nextQuestionIndex !== 'undefined'
@@ -883,16 +988,28 @@ function selectProductionSurveyAnswer(answerIndex, extraPrice) {
 
     survey.currentQuestionIndex = nextIndex;
     survey.questionPath.push(nextIndex);
+    survey.isComplete = false;
+    saveProductionSurveyDraft();
     renderProductionSurveyQuestion();
 }
 
 // Возвращает пользователя к предыдущему вопросу в опросе.
 function goToPreviousQuestion() {
     const survey = state.productionSurvey;
+    if (survey.isComplete && survey.questionPath.length > 0) {
+        survey.currentQuestionIndex = survey.questionPath[survey.questionPath.length - 1];
+        survey.isComplete = false;
+        saveProductionSurveyDraft();
+        renderProductionSurveyQuestion();
+        return;
+    }
+
     if (survey.questionPath.length > 1) {
         survey.questionPath.pop();
         survey.currentQuestionIndex = survey.questionPath[survey.questionPath.length - 1];
         survey.totalExtraPrice = survey.answers.reduce((sum, ans) => sum + (ans?.extraPrice || 0), 0);
+        survey.isComplete = false;
+        saveProductionSurveyDraft();
         renderProductionSurveyQuestion();
     }
 }
@@ -904,14 +1021,20 @@ function finishProductionSurvey() {
     const totals = getProductionSurveyTotals(survey);
     const mainFinalPrice = parsePrice(product.price) + totals.mainExtras;
     const overallTotal = mainFinalPrice + totals.separateServices;
+    survey.isComplete = true;
+    saveProductionSurveyDraft();
 
     const content = $('#modal-content');
     content.innerHTML = `
         <div class="production-survey-modal">
-            <div class="survey-progress">
-                Опрос завершен
+            <div class="survey-topbar">
+                <div class="survey-progress">
+                    ${product.title} &middot; &#1054;&#1087;&#1088;&#1086;&#1089; &#1079;&#1072;&#1074;&#1077;&#1088;&#1096;&#1077;&#1085;
+                </div>
             </div>
-            <h2>${product.title}</h2>
+            <div class="survey-image-frame">
+                <img src="${product.img}" alt="${product.title}" />
+            </div>
             <div class="survey-summary">
                 <div class="final-price">
                     Итоговая цена: ${overallTotal}₽
@@ -929,8 +1052,12 @@ function finishProductionSurvey() {
                 </div>
             </div>
             <div class="survey-footer">
-                <button id="prev-question">Назад</button>
-                <button id="add-to-cart-final" class="primary-btn">Добавить в корзину</button>
+                <div class="survey-footer-left">
+                    <button id="prev-question">&#1053;&#1072;&#1079;&#1072;&#1076;</button>
+                </div>
+                <div class="survey-footer-right">
+                    <button id="add-to-cart-final" class="primary-btn">&#1044;&#1086;&#1073;&#1072;&#1074;&#1080;&#1090;&#1100; &#1074; &#1082;&#1086;&#1088;&#1079;&#1080;&#1085;&#1091;</button>
+                </div>
             </div>
         </div>
     `;
@@ -944,8 +1071,12 @@ function closeModal({ save = true } = {}) {
     if (save && state.modalMode === 'survey' && state.modalItemId != null) {
         saveSurveyFromModal();
     }
+    if (save && state.modalMode === 'production-survey') {
+        saveProductionSurveyDraft();
+    }
     state.modalMode = null;
     state.modalItemId = null;
+    document.querySelector('.modal')?.classList.remove('production-modal');
     $('#modal-overlay').classList.add('hidden');
 }
 
@@ -1691,6 +1822,7 @@ on(document, 'click', '#add-to-cart-final', e => {
         cartItem.surveyAnswers = survey.answers.filter(ans => ans);
         saveCart();
     }
+    clearProductionSurveyDraft(product.id);
 
     // Close modal and show success
     closeModal({ save: false });
