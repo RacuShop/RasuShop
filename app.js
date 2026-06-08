@@ -762,26 +762,20 @@ function renderCatalog() {
 // Открывает модальное окно: либо детали товара, либо опрос (если требуется).
 function openModal(product) {
     const overlay = $('#modal-overlay');
+    state.modalMode = 'product';
+    state.modalItemId = null;
 
-    if (isSurveyRequiredForProduct(product.id)) {
-        // For production items, show survey first
-        openProductionSurveyModal(product);
-    } else {
-        // For other items, show product details
-        state.modalMode = 'product';
-        state.modalItemId = null;
-
-        const content = $('#modal-content');
-        content.innerHTML = `
-            <img src="${product.img}" alt="${product.title}" />
-            <h2>${product.title}</h2>
-            <p>${product.desc}</p>
-            <p class="card-price">${product.price} ₽</p>
-            <button id="add-to-cart" data-id="${product.id}">Добавить в корзину</button>
-        `;
-        overlay.classList.remove('hidden');
-    }
+    const content = $('#modal-content');
+    content.innerHTML = `
+        <img src="${product.img}" alt="${product.title}" />
+        <h2>${product.title}</h2>
+        <p>${product.desc}</p>
+        <p class="card-price">${product.price} &#8381;</p>
+        <button id="add-to-cart" data-id="${product.id}">&#1044;&#1086;&#1073;&#1072;&#1074;&#1080;&#1090;&#1100; &#1074; &#1082;&#1086;&#1088;&#1079;&#1080;&#1085;&#1091;</button>
+    `;
+    overlay.classList.remove('hidden');
 }
+
 
 // Открывает многошаговый опрос для товаров категории "Производство".
 function openProductionSurveyModal(product) {
@@ -1661,17 +1655,21 @@ on(document, 'click', '#add-to-cart', e => {
     console.log('PRODUCT ID:', productId);
     if (!productId) return;
 
+    const product = products.find(p => p.id === productId);
+    console.log('FOUND PRODUCT:', product);
+    if (!product) return;
+
+    if (isSurveyRequiredForProduct(productId)) {
+        openProductionSurveyModal(product);
+        return;
+    }
+
     console.log('CART BEFORE:', state.cart);
     addProductToCart(productId);
     console.log('CART AFTER:', state.cart);
 
     closeModal({ save: false });
-
-    const product = products.find(p => p.id === productId);
-    console.log('FOUND PRODUCT:', product);
-    if (product) {
-        switchScreen('cart');
-    }
+    switchScreen('cart');
 });
 // Handle add to cart final button in production survey
 on(document, 'click', '#add-to-cart-final', e => {
